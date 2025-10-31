@@ -1,0 +1,267 @@
+/* CSS Reset and Custom Properties */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0a0e14;
+    --text-primary: #00d9ff;
+    --text-secondary: #8f9ba8;
+    --accent-green: #00ff00;
+    --accent-red: #ff6b6b;
+    --font-mono: 'Fira Code', 'JetBrains Mono', 'IBM Plex Mono', 'Courier New', monospace;
+    --transition-speed: 0.3s;
+}
+
+body {
+    font-family: var(--font-mono);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 16px;
+    overflow-x: hidden;
+}
+
+/* Terminal Container */
+.terminal {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+}
+
+.terminal-section {
+    margin-bottom: 3rem;
+}
+
+.terminal-output {
+    padding: 1rem;
+}
+
+.terminal-line {
+    margin: 0.5rem 0;
+    color: var(--text-secondary);
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+/* Prompt and Logo */
+.prompt {
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.logo {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin: 1rem 0;
+    font-weight: bold;
+}
+
+.tagline {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    max-width: 400px;
+    height: 20px;
+    border: 1px solid var(--text-primary);
+    margin: 1rem 0;
+    position: relative;
+    opacity: 0;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background-color: var(--text-primary);
+    animation: fillProgress 1s ease-out forwards;
+}
+
+@keyframes fillProgress {
+    to {
+        width: 100%;
+    }
+}
+
+/* Services List */
+.service-list {
+    list-style: none;
+    margin: 1rem 0;
+}
+
+.service-item {
+    margin: 0.75rem 0;
+    padding: 0.5rem;
+    transition: all var(--transition-speed);
+    cursor: default;
+}
+
+.service-item:hover {
+    background-color: rgba(0, 217, 255, 0.1);
+    padding-left: 1rem;
+}
+
+.service-flag {
+    color: var(--text-primary);
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.service-desc {
+    color: var(--text-secondary);
+}
+
+/* Company Info */
+.info-block {
+    background-color: rgba(0, 217, 255, 0.05);
+    padding: 1.5rem;
+    border-left: 3px solid var(--text-primary);
+    color: var(--text-secondary);
+    margin: 1rem 0;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+}
+
+/* Contact Section */
+.contact-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.contact-btn {
+    background: transparent;
+    border: 2px solid var(--text-primary);
+    color: var(--text-primary);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+}
+
+.contact-btn:hover,
+.contact-btn:focus {
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 217, 255, 0.3);
+}
+
+.contact-btn:active {
+    transform: translateY(0);
+}
+
+.contact-flag {
+    font-weight: bold;
+}
+
+.contact-details {
+    margin: 1.5rem 0;
+}
+
+.contact-detail {
+    margin: 1rem 0;
+}
+
+.contact-link {
+    color: var(--accent-green);
+    text-decoration: none;
+    transition: color var(--transition-speed);
+}
+
+.contact-link:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+.copy-btn {
+    background: transparent;
+    border: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+}
+
+.copy-btn:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.copy-btn.copied {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+/* Cursor Animation */
+.cursor-line {
+    margin-top: 2rem;
+}
+
+.cursor {
+    display: inline-block;
+    background-color: var(--text-primary);
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .terminal {
+        padding: 1rem 0.5rem;
+    }
+
+    .logo {
+        font-size: 1.2rem;
+    }
+
+    .service-flag {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-block {
+        font-size: 0.75rem;
+        padding: 1rem;
+    }
+
+    .contact-btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
