@@ -135,6 +135,48 @@ body {
     font-size: 0.9rem;
 }
 
+/* Team Section */
+.team-list {
+    list-style: none;
+    margin: 1rem 0;
+}
+
+.team-item {
+    margin: 0.75rem 0;
+    padding: 0.5rem;
+    transition: all var(--transition-speed);
+    cursor: default;
+}
+
+.team-item:hover {
+    background-color: rgba(0, 217, 255, 0.1);
+    padding-left: 1rem;
+}
+
+.team-flag {
+    color: var(--text-primary);
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.team-role {
+    color: var(--text-secondary);
+    margin-right: 1rem;
+}
+
+.team-link {
+    color: var(--accent-green);
+    text-decoration: none;
+    transition: color var(--transition-speed);
+    font-size: 0.9rem;
+}
+
+.team-link:hover,
+.team-link:focus {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
 /* Contact Section */
 .contact-options {
     display: flex;
@@ -251,6 +293,16 @@ body {
     .info-block {
         font-size: 0.75rem;
         padding: 1rem;
+    }
+
+    .team-flag {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .team-role {
+        display: block;
+        margin-bottom: 0.25rem;
     }
 
     .contact-btn {
