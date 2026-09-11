@@ -63,13 +63,13 @@ Rules: no tech blue, no purple, no gradients. Copper is never used for text and 
 
 Sources: the 2026/2027 offer document (team experience figures), the Continental repositories, and the CasingDB modernisation deck.
 
-Published: client names as text (no logos), what each system does in business terms, the kind of work we did (frontend platform, database migration, backend upgrades, test suites, containerised deployment), generic technology names that our own offer already lists (Angular, Java, Spring Boot, Kubernetes), "6 to 8 years each" (from our offer), "since 2022" for the frontend platform, and the fact that two junior engineers we mentor delivered the casing work.
+Published: client logos (official vector artwork, inlined as single-colour SVG in graphite; the colour versions are deliberately not used), what each system does in business terms, the kind of work we did (frontend platform, database migration, backend upgrades, test suites, containerised deployment), generic technology names that our own offer already lists (Angular, Java, Spring Boot, Kubernetes), "6 to 8 years each" (from our offer), "since 2022" for the frontend platform, and the fact that two junior engineers we mentor delivered the casing work.
 
 Deliberately left out: internal system names (CESAR, CESX, CasingDB), internal URLs and hostnames, names of client staff, daily rates, ticket numbers, codebase metrics from the audit (line counts, module counts), vendor names for the database, cloud and CI (Oracle, PostgreSQL, Azure, Jenkins, SAP), the state of any upgrade, the existence of a legacy UI, "in progress" status, the client's previous deployment practice, and any dates from the client's internal roadmap.
 
 Before this goes live:
 
-- Continental must agree to being named, and to the two case descriptions. Check the contract for a reference or publicity clause. If they decline, the fallback is "a German automotive supplier" with the same copy and no logo strip.
+- Continental must agree to being named, to the two case descriptions, and to the use of its logo (trademark use; brand teams usually require sign-off). The same applies to the NTT DATA logo. Check the contract for a reference or publicity clause. If they decline, the fallback is "a German automotive supplier" with the same copy and no logo strip.
 - NTT DATA: confirm what may be said. The current line is deliberately generic.
 - The offer PDF and any other PDF in the repository root are ignored by `.gitignore` so they cannot be published by accident. Keep it that way.
 
