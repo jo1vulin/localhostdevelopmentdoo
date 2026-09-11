@@ -1,110 +1,112 @@
-// Typewriter effect for terminal lines
 document.addEventListener('DOMContentLoaded', () => {
-    initTypewriter();
-    initContactButtons();
+    initNav();
     initCopyButtons();
+    initReveal();
+    initPortraits();
+    initYear();
 });
 
-// Typewriter animation
-function initTypewriter() {
-    const lines = document.querySelectorAll('.terminal-line, .progress-bar');
-
-    lines.forEach((line, index) => {
-        const delay = parseInt(line.getAttribute('data-delay')) || index * 300;
-
-        setTimeout(() => {
-            if (line.classList.contains('progress-bar')) {
-                line.style.opacity = '1';
-            } else {
-                line.style.opacity = '1';
-            }
-        }, delay);
+function initPortraits() {
+    document.querySelectorAll('.portrait img').forEach(img => {
+        const loaded = () => img.parentElement.classList.add('has-photo');
+        const missing = () => img.classList.add('is-missing');
+        img.addEventListener('load', loaded);
+        img.addEventListener('error', missing);
+        if (img.complete) (img.naturalWidth > 0 ? loaded : missing)();
     });
 }
 
-// Contact button interactions
-function initContactButtons() {
-    const contactButtons = document.querySelectorAll('.contact-btn');
+function initNav() {
+    const toggle = document.querySelector('.nav-toggle');
+    const nav = document.getElementById('site-nav');
+    if (!toggle || !nav) return;
 
-    contactButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const method = button.getAttribute('data-method');
-            toggleContactDetail(method);
+    toggle.addEventListener('click', () => {
+        const open = nav.classList.toggle('is-open');
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.textContent = open ? 'Close' : 'Menu';
+    });
+
+    nav.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            nav.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.textContent = 'Menu';
         });
     });
 }
 
-function toggleContactDetail(method) {
-    const detailId = `${method}-detail`;
-    const detail = document.getElementById(detailId);
-
-    if (!detail) return;
-
-    // Hide all other details
-    document.querySelectorAll('.contact-detail').forEach(d => {
-        if (d.id !== detailId) {
-            d.style.display = 'none';
-        }
-    });
-
-    // Toggle current detail
-    if (detail.style.display === 'none') {
-        detail.style.display = 'block';
-        detail.style.animation = 'fadeIn 0.3s forwards';
-    } else {
-        detail.style.display = 'none';
-    }
-}
-
-// Copy to clipboard functionality
 function initCopyButtons() {
-    const copyButtons = document.querySelectorAll('.copy-btn');
-
-    copyButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            const textToCopy = button.getAttribute('data-copy');
-            copyToClipboard(textToCopy, button);
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const text = button.getAttribute('data-copy');
+            try {
+                await navigator.clipboard.writeText(text);
+                showCopied(button);
+            } catch (err) {
+                fallbackCopy(text, button);
+            }
         });
     });
 }
 
-async function copyToClipboard(text, button) {
-    try {
-        await navigator.clipboard.writeText(text);
-        showCopyFeedback(button);
-    } catch (err) {
-        // Fallback for older browsers
-        fallbackCopyToClipboard(text, button);
-    }
-}
-
-function fallbackCopyToClipboard(text, button) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-9999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
+function fallbackCopy(text, button) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    document.body.appendChild(area);
+    area.select();
     try {
         document.execCommand('copy');
-        showCopyFeedback(button);
+        showCopied(button);
     } catch (err) {
-        console.error('Failed to copy:', err);
+        console.error('Copy failed:', err);
     }
-
-    document.body.removeChild(textArea);
+    document.body.removeChild(area);
 }
 
-function showCopyFeedback(button) {
-    const originalText = button.textContent;
-    button.textContent = '[copied!]';
+function showCopied(button) {
+    const original = button.textContent;
+    button.textContent = 'Copied';
     button.classList.add('copied');
-
     setTimeout(() => {
-        button.textContent = originalText;
+        button.textContent = original;
         button.classList.remove('copied');
-    }, 2000);
+    }, 1800);
+}
+
+function initReveal() {
+    const items = document.querySelectorAll('.reveal');
+    if (!items.length) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || !('IntersectionObserver' in window)) {
+        items.forEach(item => item.classList.add('is-visible'));
+        return;
+    }
+
+    const groups = new Map();
+    items.forEach(item => {
+        const parent = item.parentElement;
+        const index = groups.get(parent) || 0;
+        item.style.setProperty('--reveal-delay', `${Math.min(index, 5) * 90}ms`);
+        groups.set(parent, index + 1);
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+        });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+
+    items.forEach(item => observer.observe(item));
+}
+
+function initYear() {
+    const year = document.getElementById('year');
+    if (year) year.textContent = String(new Date().getFullYear());
 }

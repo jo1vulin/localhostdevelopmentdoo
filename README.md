@@ -17,4 +17,23 @@ python -m http.server 8000
 
 - HTML5
 - CSS3
-- Vanilla JavaScript
+- Vanilla JavaScript (no libraries, no build step)
+- Fonts from Google Fonts: Newsreader, Source Sans 3, JetBrains Mono
+
+## Brand
+
+Palette, typography, logo and tone are documented in `docs/plans/2026-09-11-brand-redesign.md`. The palette options that led to it are in `docs/localhost-development-palettes.html`.
+
+## Adding team photos
+
+Drop one JPEG per person into `img/team/`, named exactly:
+
+```
+img/team/vladimir-orelj.jpg
+img/team/mladen-mladjenovic.jpg
+img/team/rade-spasojevic.jpg
+img/team/milos-galuska.jpg
+img/team/jovan-vulin.jpg
+```
+
+Nothing else to edit. A square headshot (LinkedIn export, 400px or larger) works: the card is square, so nothing is cropped, and it is rendered in monochrome so the five photos read as one set. While a file is missing, the card shows the person's initials instead.

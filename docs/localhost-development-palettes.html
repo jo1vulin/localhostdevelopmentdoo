@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Localhost Development — palette options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --display:"Fraunces", Georgia, serif;
+    --body:"Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono:"JetBrains Mono", Consolas, monospace;
+    --ink:#211F1C; --paper:#F3F0E9; --line:#D6CFC1; --muted:#6A645B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.55}
+  h1,h2,h3{font-family:var(--display); font-weight:400; line-height:1.1; margin:0}
+  h1{font-size:clamp(40px,6vw,72px); font-variation-settings:"opsz" 144}
+  h2{font-size:38px; margin-bottom:.2em}
+  h3{font-size:22px; margin:1.4em 0 .4em}
+  p{max-width:64ch; margin:0 0 1em}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 6vw}
+  header{padding:90px 0 60px}
+  header p{font-size:20px; color:var(--muted)}
+  .kicker{font-family:var(--mono); font-size:14px; color:#6E2A28; margin-bottom:22px}
+  .pal{padding:72px 0; border-top:1px solid var(--line)}
+  .mood{font-family:var(--display); font-style:italic; font-size:22px; color:var(--muted); margin-bottom:26px}
+  .grid{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:40px; align-items:start}
+  .swatches{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px}
+  .sw{height:150px; padding:12px; display:flex; flex-direction:column; justify-content:flex-end; border:1px solid rgba(0,0,0,.08)}
+  .sw b{font-family:var(--display); font-weight:400; font-size:19px}
+  .sw span{font-family:var(--mono); font-size:12px; opacity:.85}
+  .sw small{font-size:12px; opacity:.85; margin-top:2px}
+  .ratio{display:flex; height:28px; margin:16px 0 4px; border:1px solid rgba(0,0,0,.12)}
+  .ratio div{display:grid; place-items:center; font-family:var(--mono); font-size:11px}
+  .note{font-size:14px; color:var(--muted); margin-bottom:0}
+  ul{padding-left:1.1em; max-width:60ch; margin:.4em 0 1em} li{margin:.25em 0}
+
+  /* mini site preview, themed per palette via inline CSS vars */
+  .preview{border:1px solid rgba(0,0,0,.15); font-size:15px; overflow:hidden}
+  .preview .nav{display:flex; justify-content:space-between; align-items:center; padding:14px 22px; border-bottom:1px solid var(--p-line)}
+  .preview .logo{font-family:var(--display); font-size:22px; font-variation-settings:"opsz" 144}
+  .preview .logo i{font-style:normal; color:var(--p-accent2)}
+  .preview .nav span{font-size:13px; color:var(--p-muted)}
+  .preview .hero{padding:34px 22px 30px}
+  .preview .hero h4{font-family:var(--display); font-weight:400; font-size:30px; line-height:1.1; margin:0 0 12px; font-variation-settings:"opsz" 144}
+  .preview .hero p{max-width:40ch; margin:0 0 18px; font-size:15px}
+  .preview .btn{display:inline-block; padding:8px 16px; font-weight:600; font-size:14px; background:var(--p-accent); color:var(--p-bg)}
+  .preview .btn.ghost{background:transparent; color:var(--p-text); border:1px solid var(--p-text); margin-left:6px}
+  .preview .band{padding:20px 22px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; border-top:1px solid var(--p-line); background:var(--p-surface)}
+  .preview .band b{font-family:var(--display); font-weight:400; font-size:17px; display:block; margin-bottom:4px; color:var(--p-accent3)}
+  .preview .band p{font-size:13px; margin:0; color:var(--p-muted)}
+  .preview .foot{padding:14px 22px; background:var(--p-dark); color:var(--p-onDark); font-size:12px; font-family:var(--mono)}
+  .preview .foot i{font-style:normal; color:var(--p-accent2)}
+  .preview{background:var(--p-bg); color:var(--p-text)}
+
+  table{border-collapse:collapse; width:100%; margin:20px 0; font-size:16px}
+  th,td{text-align:left; vertical-align:top; padding:11px 14px 11px 0; border-bottom:1px solid var(--line)}
+  th{font-family:var(--display); font-weight:400; font-size:19px}
+  footer{padding:50px 0 80px; color:var(--muted); font-size:14px; border-top:1px solid var(--line)}
+  @media (max-width:820px){ .grid{grid-template-columns:1fr} .preview .band{grid-template-columns:1fr} h2{font-size:32px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">localhost development — palette options</div>
+  <h1>Six palettes. Pick one, not a mix.</h1>
+  <p>Each option below keeps the same rules from the brand guide: no tech blue, no purple, no gradients; one warm neutral for backgrounds, one near-black for text, one primary accent for buttons, one secondary for structure, one spice colour used sparingly. The site preview is rendered live in each palette so you compare the feeling, not the swatches.</p>
+  <p>Contrast figures are text-on-background ratios: 4.5+ passes for body text, 3+ for large text and UI elements only. "Spice" colours are deliberately allowed to fail — they are never used for text.</p>
+</header>
+
+<!-- ============ A ============ -->
+<section class="pal" id="a">
+  <h2>A. Paper &amp; Bordeaux</h2>
+  <p class="mood">The one from the brand guide. Old shop: paper, wine, green felt.</p>
+  <div class="grid">
+    <div>
+      <div class="swatches">
+        <div class="sw" style="background:#EDE7DA;color:#211F1C"><b>Paper</b><span>#EDE7DA</span><small>background</small></div>
+        <div class="sw" style="background:#E1D8C6;color:#211F1C"><b>Dark paper</b><span>#E1D8C6</span><small>surfaces</small></div>
+        <div class="sw" style="background:#CDBB9C;color:#211F1C"><b>Sand</b><span>#CDBB9C</span><small>lines</small></div>
+        <div class="sw" style="background:#211F1C;color:#EDE7DA"><b>Graphite</b><span>#211F1C</span><small>text · 13.3:1</small></div>
+        <div class="sw" style="background:#6E2A28;color:#EDE7DA"><b>Bordeaux</b><span>#6E2A28</span><small>primary · 8.4:1</small></div>
+        <div class="sw" style="background:#2E463A;color:#EDE7DA"><b>Pine</b><span>#2E463A</span><small>secondary · 8.3:1</small></div>
+        <div class="sw" style="background:#A96F2B;color:#EDE7DA"><b>Copper</b><span>#A96F2B</span><small>spice · 3.4:1</small></div>
+      </div>
+      <div class="ratio"><div style="flex:60;background:#EDE7DA">60</div><div style="flex:25;background:#211F1C;color:#EDE7DA">25</div><div style="flex:8;background:#6E2A28;color:#EDE7DA">8</div><div style="flex:5;background:#2E463A;color:#EDE7DA">5</div><div style="flex:2;background:#A96F2B"></div></div>
+      <p class="note">Fits when: you want the most "family restaurant" reading of the brief. Avoid when: you worry it reads too traditional for younger clients.</p>
+    </div>
+    <div class="preview" style="--p-bg:#EDE7DA;--p-surface:#E1D8C6;--p-line:#CDBB9C;--p-text:#211F1C;--p-muted:#6A645B;--p-accent:#6E2A28;--p-accent2:#A96F2B;--p-accent3:#2E463A;--p-dark:#211F1C;--p-onDark:#EDE7DA">
+      <div class="nav"><div class="logo">localhost<i>.</i></div><span>Who we are · How we work · Work · Contact</span></div>
+      <div class="hero"><h4>Software from people you'll know by name.</h4><p>Five engineers who have worked together for years. We take on the systems nobody else wants to touch, and stay with them — same people, year after year.</p><a class="btn">Meet the team</a><a class="btn ghost">See our work</a></div>
+      <div class="band"><div><b>Long history</b><p>We know each other better than any framework.</p></div><div><b>People, not resources</b><p>When you call, the person who wrote the code picks up.</p></div><div><b>Hard problems</b><p>We get called when the easy way has been tried.</p></div></div>
+      <div class="foot">localhost<i>.</i> development d.o.o.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B ============ -->
+<section class="pal" id="b">
+  <h2>B. Linen &amp; Ink</h2>
+  <p class="mood">Quieter and cooler. A well-run notary's office, not a restaurant.</p>
+  <div class="grid">
+    <div>
+      <div class="swatches">
+        <div class="sw" style="background:#F0ECE3;color:#232322"><b>Linen</b><span>#F0ECE3</span><small>background</small></div>
+        <div class="sw" style="background:#E4DFD3;color:#232322"><b>Chalk</b><span>#E4DFD3</span><small>surfaces</small></div>
+        <div class="sw" style="background:#C8C0B0;color:#232322"><b>Ash</b><span>#C8C0B0</span><small>lines</small></div>
+        <div class="sw" style="background:#232322;color:#F0ECE3"><b>Ink</b><span>#232322</span><small>text · 13.3:1</small></div>
+        <div class="sw" style="background:#3F5148;color:#F0ECE3"><b>Slate green</b><span>#3F5148</span><small>primary · 7.2:1</small></div>
+        <div class="sw" style="background:#7A6A4E;color:#F0ECE3"><b>Umber</b><span>#7A6A4E</span><small>secondary · 4.5:1</small></div>
+        <div class="sw" style="background:#B48A2F;color:#232322"><b>Brass</b><span>#B48A2F</span><small>spice · 2.7:1</small></div>
+      </div>
+      <div class="ratio"><div style="flex:62;background:#F0ECE3">62</div><div style="flex:24;background:#232322;color:#F0ECE3">24</div><div style="flex:8;background:#3F5148;color:#F0ECE3">8</div><div style="flex:4;background:#7A6A4E;color:#F0ECE3">4</div><div style="flex:2;background:#B48A2F"></div></div>
+      <p class="note">Fits when: most of your prospects are corporate and you want "trusted advisor" more than "warm". Avoid when: you want the site to feel personal at first glance — this one earns warmth through photos, not colour.</p>
+    </div>
+    <div class="preview" style="--p-bg:#F0ECE3;--p-surface:#E4DFD3;--p-line:#C8C0B0;--p-text:#232322;--p-muted:#66615A;--p-accent:#3F5148;--p-accent2:#B48A2F;--p-accent3:#7A6A4E;--p-dark:#232322;--p-onDark:#F0ECE3">
+      <div class="nav"><div class="logo">localhost<i>.</i></div><span>Who we are · How we work · Work · Contact</span></div>
+      <div class="hero"><h4>Software from people you'll know by name.</h4><p>Five engineers who have worked together for years. We take on the systems nobody else wants to touch, and stay with them — same people, year after year.</p><a class="btn">Meet the team</a><a class="btn ghost">See our work</a></div>
+      <div class="band"><div><b>Long history</b><p>We know each other better than any framework.</p></div><div><b>People, not resources</b><p>When you call, the person who wrote the code picks up.</p></div><div><b>Hard problems</b><p>We get called when the easy way has been tried.</p></div></div>
+      <div class="foot">localhost<i>.</i> development d.o.o.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ C ============ -->
+<section class="pal" id="c">
+  <h2>C. Stone &amp; Olive</h2>
+  <p class="mood">Mediterranean and outdoors. Olive grove, terracotta roof, stone wall.</p>
+  <div class="grid">
+    <div>
+      <div class="swatches">
+        <div class="sw" style="background:#E9E3D6;color:#26261F"><b>Stone</b><span>#E9E3D6</span><small>background</small></div>
+        <div class="sw" style="background:#DDD5C4;color:#26261F"><b>Plaster</b><span>#DDD5C4</span><small>surfaces</small></div>
+        <div class="sw" style="background:#BDB39A;color:#26261F"><b>Dry grass</b><span>#BDB39A</span><small>lines</small></div>
+        <div class="sw" style="background:#26261F;color:#E9E3D6"><b>Soot</b><span>#26261F</span><small>text · 11.9:1</small></div>
+        <div class="sw" style="background:#4E5A38;color:#E9E3D6"><b>Olive</b><span>#4E5A38</span><small>primary · 5.8:1</small></div>
+        <div class="sw" style="background:#8C4A33;color:#E9E3D6"><b>Clay</b><span>#8C4A33</span><small>secondary · 5.2:1</small></div>
+        <div class="sw" style="background:#B99347;color:#26261F"><b>Ochre</b><span>#B99347</span><small>spice · 2.2:1</small></div>
+      </div>
+      <div class="ratio"><div style="flex:60;background:#E9E3D6">60</div><div style="flex:24;background:#26261F;color:#E9E3D6">24</div><div style="flex:9;background:#4E5A38;color:#E9E3D6">9</div><div style="flex:5;background:#8C4A33;color:#E9E3D6">5</div><div style="flex:2;background:#B99347"></div></div>
+      <p class="note">Fits when: you want warmth without the "old" feeling of bordeaux — friendlier, lighter, still nowhere near tech. Avoid when: your photos will be shot indoors under cool light; olive and clay want warm daylight photography to match.</p>
+    </div>
+    <div class="preview" style="--p-bg:#E9E3D6;--p-surface:#DDD5C4;--p-line:#BDB39A;--p-text:#26261F;--p-muted:#635F52;--p-accent:#4E5A38;--p-accent2:#B99347;--p-accent3:#8C4A33;--p-dark:#26261F;--p-onDark:#E9E3D6">
+      <div class="nav"><div class="logo">localhost<i>.</i></div><span>Who we are · How we work · Work · Contact</span></div>
+      <div class="hero"><h4>Software from people you'll know by name.</h4><p>Five engineers who have worked together for years. We take on the systems nobody else wants to touch, and stay with them — same people, year after year.</p><a class="btn">Meet the team</a><a class="btn ghost">See our work</a></div>
+      <div class="band"><div><b>Long history</b><p>We know each other better than any framework.</p></div><div><b>People, not resources</b><p>When you call, the person who wrote the code picks up.</p></div><div><b>Hard problems</b><p>We get called when the easy way has been tried.</p></div></div>
+      <div class="foot">localhost<i>.</i> development d.o.o.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ D ============ -->
+<section class="pal" id="d">
+  <h2>D. Cream &amp; Walnut</h2>
+  <p class="mood">The dining room. Dark wood, cream tablecloth, a green bottle, a brass lamp.</p>
+  <div class="grid">
+    <div>
+      <div class="swatches">
+        <div class="sw" style="background:#F2ECDF;color:#3A2A22"><b>Cream</b><span>#F2ECDF</span><small>background</small></div>
+        <div class="sw" style="background:#E7DECB;color:#3A2A22"><b>Butter</b><span>#E7DECB</span><small>surfaces</small></div>
+        <div class="sw" style="background:#CFC0A4;color:#3A2A22"><b>Oak</b><span>#CFC0A4</span><small>lines</small></div>
+        <div class="sw" style="background:#3A2A22;color:#F2ECDF"><b>Walnut</b><span>#3A2A22</span><small>text · 11.6:1</small></div>
+        <div class="sw" style="background:#8A2F2F;color:#F2ECDF"><b>Claret</b><span>#8A2F2F</span><small>primary · 7.1:1</small></div>
+        <div class="sw" style="background:#355A4B;color:#F2ECDF"><b>Bottle green</b><span>#355A4B</span><small>secondary · 6.6:1</small></div>
+        <div class="sw" style="background:#C39A2B;color:#3A2A22"><b>Brass</b><span>#C39A2B</span><small>spice · 2.2:1</small></div>
+      </div>
+      <div class="ratio"><div style="flex:60;background:#F2ECDF">60</div><div style="flex:25;background:#3A2A22;color:#F2ECDF">25</div><div style="flex:8;background:#8A2F2F;color:#F2ECDF">8</div><div style="flex:5;background:#355A4B;color:#F2ECDF">5</div><div style="flex:2;background:#C39A2B"></div></div>
+      <p class="note">Fits when: you want to lean fully into the "70-year restaurant" idea — the brown text instead of black is what makes it feel like wood rather than print. Avoid when: you plan a lot of code samples or diagrams on the site; brown text under monospace code looks off.</p>
+    </div>
+    <div class="preview" style="--p-bg:#F2ECDF;--p-surface:#E7DECB;--p-line:#CFC0A4;--p-text:#3A2A22;--p-muted:#6F5E52;--p-accent:#8A2F2F;--p-accent2:#C39A2B;--p-accent3:#355A4B;--p-dark:#3A2A22;--p-onDark:#F2ECDF">
+      <div class="nav"><div class="logo">localhost<i>.</i></div><span>Who we are · How we work · Work · Contact</span></div>
+      <div class="hero"><h4>Software from people you'll know by name.</h4><p>Five engineers who have worked together for years. We take on the systems nobody else wants to touch, and stay with them — same people, year after year.</p><a class="btn">Meet the team</a><a class="btn ghost">See our work</a></div>
+      <div class="band"><div><b>Long history</b><p>We know each other better than any framework.</p></div><div><b>People, not resources</b><p>When you call, the person who wrote the code picks up.</p></div><div><b>Hard problems</b><p>We get called when the easy way has been tried.</p></div></div>
+      <div class="foot">localhost<i>.</i> development d.o.o.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ E ============ -->
+<section class="pal" id="e">
+  <h2>E. Fog &amp; Rust</h2>
+  <p class="mood">Industrial and serious. A machine shop that has been in the same street for decades.</p>
+  <div class="grid">
+    <div>
+      <div class="swatches">
+        <div class="sw" style="background:#E6E4DF;color:#2B3236"><b>Fog</b><span>#E6E4DF</span><small>background</small></div>
+        <div class="sw" style="background:#D9D6CF;color:#2B3236"><b>Concrete</b><span>#D9D6CF</span><small>surfaces</small></div>
+        <div class="sw" style="background:#B9B5AC;color:#2B3236"><b>Zinc</b><span>#B9B5AC</span><small>lines</small></div>
+        <div class="sw" style="background:#2B3236;color:#E6E4DF"><b>Iron</b><span>#2B3236</span><small>text · 10.3:1</small></div>
+        <div class="sw" style="background:#8A3A28;color:#E6E4DF"><b>Rust</b><span>#8A3A28</span><small>primary · 6.1:1</small></div>
+        <div class="sw" style="background:#3D4B52;color:#E6E4DF"><b>Steel</b><span>#3D4B52</span><small>secondary · 7.1:1</small></div>
+        <div class="sw" style="background:#6C7B5C;color:#E6E4DF"><b>Moss</b><span>#6C7B5C</span><small>spice · 3.6:1</small></div>
+      </div>
+      <div class="ratio"><div style="flex:60;background:#E6E4DF">60</div><div style="flex:26;background:#2B3236;color:#E6E4DF">26</div><div style="flex:7;background:#8A3A28;color:#E6E4DF">7</div><div style="flex:5;background:#3D4B52;color:#E6E4DF">5</div><div style="flex:2;background:#6C7B5C"></div></div>
+      <p class="note">Fits when: your typical client is an industrial or enterprise buyer and "warm" needs to stay under the surface. Steel is as close to blue as any of these get, and it is still clearly a metal, not a SaaS. Avoid when: you want the site to feel like a home rather than a workshop.</p>
+    </div>
+    <div class="preview" style="--p-bg:#E6E4DF;--p-surface:#D9D6CF;--p-line:#B9B5AC;--p-text:#2B3236;--p-muted:#5E6569;--p-accent:#8A3A28;--p-accent2:#8A3A28;--p-accent3:#3D4B52;--p-dark:#2B3236;--p-onDark:#E6E4DF">
+      <div class="nav"><div class="logo">localhost<i>.</i></div><span>Who we are · How we work · Work · Contact</span></div>
+      <div class="hero"><h4>Software from people you'll know by name.</h4><p>Five engineers who have worked together for years. We take on the systems nobody else wants to touch, and stay with them — same people, year after year.</p><a class="btn">Meet the team</a><a class="btn ghost">See our work</a></div>
+      <div class="band"><div><b>Long history</b><p>We know each other better than any framework.</p></div><div><b>People, not resources</b><p>When you call, the person who wrote the code picks up.</p></div><div><b>Hard problems</b><p>We get called when the easy way has been tried.</p></div></div>
+      <div class="foot">localhost<i>.</i> development d.o.o.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ F ============ -->
+<section class="pal" id="f">
+  <h2>F. Hearth</h2>
+  <p class="mood">The dark option. Evening in the same restaurant: lamplight, dark wood, warm walls.</p>
+  <div class="grid">
+    <div>
+      <div class="swatches">
+        <div class="sw" style="background:#1D1917;color:#E8DFCC"><b>Espresso</b><span>#1D1917</span><small>background</small></div>
+        <div class="sw" style="background:#2A2421;color:#E8DFCC"><b>Charred wood</b><span>#2A2421</span><small>surfaces</small></div>
+        <div class="sw" style="background:#4A403A;color:#E8DFCC"><b>Bark</b><span>#4A403A</span><small>lines</small></div>
+        <div class="sw" style="background:#E8DFCC;color:#1D1917"><b>Parchment</b><span>#E8DFCC</span><small>text · 13.2:1</small></div>
+        <div class="sw" style="background:#C48B3C;color:#1D1917"><b>Amber</b><span>#C48B3C</span><small>primary · 5.9:1</small></div>
+        <div class="sw" style="background:#5B7A66;color:#1D1917"><b>Sage</b><span>#5B7A66</span><small>secondary · 3.7:1</small></div>
+        <div class="sw" style="background:#8C4444;color:#E8DFCC"><b>Wine</b><span>#8C4444</span><small>surface only · 2.5:1</small></div>
+      </div>
+      <div class="ratio"><div style="flex:62;background:#1D1917">62</div><div style="flex:24;background:#E8DFCC;color:#1D1917">24</div><div style="flex:8;background:#C48B3C;color:#1D1917">8</div><div style="flex:4;background:#5B7A66">4</div><div style="flex:2;background:#8C4444"></div></div>
+      <p class="note">Fits when: you want a memorable first screen and your photography is moody enough to carry it. Avoid when: the site will be text-heavy — long reading on dark backgrounds tires people, and dark sites are what every crypto and AI startup ships. Honest verdict: strongest hero, weakest fit for the "serious family firm" brief. If you like it, use it for the hero and footer only, on top of palette A or D.</p>
+    </div>
+    <div class="preview" style="--p-bg:#1D1917;--p-surface:#2A2421;--p-line:#4A403A;--p-text:#E8DFCC;--p-muted:#B5AA97;--p-accent:#C48B3C;--p-accent2:#C48B3C;--p-accent3:#9BB5A2;--p-dark:#0F0D0C;--p-onDark:#B5AA97">
+      <div class="nav"><div class="logo">localhost<i>.</i></div><span>Who we are · How we work · Work · Contact</span></div>
+      <div class="hero"><h4>Software from people you'll know by name.</h4><p>Five engineers who have worked together for years. We take on the systems nobody else wants to touch, and stay with them — same people, year after year.</p><a class="btn">Meet the team</a><a class="btn ghost">See our work</a></div>
+      <div class="band"><div><b>Long history</b><p>We know each other better than any framework.</p></div><div><b>People, not resources</b><p>When you call, the person who wrote the code picks up.</p></div><div><b>Hard problems</b><p>We get called when the easy way has been tried.</p></div></div>
+      <div class="foot">localhost<i>.</i> development d.o.o.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SUMMARY ============ -->
+<section class="pal">
+  <h2>Side by side</h2>
+  <table>
+    <tr><th>Palette</th><th>Temperature</th><th>Reads as</th><th>Best paired with</th></tr>
+    <tr><td>A. Paper &amp; Bordeaux</td><td>warm</td><td>established, traditional, trustworthy</td><td>indoor photos, natural light, black-and-white portraits</td></tr>
+    <tr><td>B. Linen &amp; Ink</td><td>neutral</td><td>discreet, professional, understated</td><td>quiet documentary photos; lets the copy do the talking</td></tr>
+    <tr><td>C. Stone &amp; Olive</td><td>warm, light</td><td>friendly, open, Mediterranean</td><td>daylight photos, outdoors or by a window</td></tr>
+    <tr><td>D. Cream &amp; Walnut</td><td>warmest</td><td>the restaurant, literally</td><td>rich colour photos, wood and texture in the frame</td></tr>
+    <tr><td>E. Fog &amp; Rust</td><td>cool</td><td>industrial, dependable, engineering</td><td>desaturated photos, workshop or office detail shots</td></tr>
+    <tr><td>F. Hearth</td><td>warm, dark</td><td>atmospheric, premium, evening</td><td>low-light photography; hero and footer only</td></tr>
+  </table>
+
+  <h3>How to choose</h3>
+  <ul>
+    <li>Open this page on a phone and on a big screen. Palettes shift a lot between the two.</li>
+    <li>Put your best photo of the five of you next to each preview. The palette that makes the photo look like it belongs there is the one.</li>
+    <li>Pick one. A and D are close enough that mixing them will look like a mistake; the same goes for B and E.</li>
+    <li>Whatever you pick, the rule from the brand guide stays: the copper/brass/amber spice colour appears once per screen at most.</li>
+  </ul>
+</section>
+
+</div>
+<footer><div class="wrap">Localhost Development d.o.o. — palette options, September 2026. Companion to the brand guide. Type: Fraunces, Source Sans 3, JetBrains Mono.</div></footer>
+</body>
+</html>
