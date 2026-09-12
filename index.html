@@ -61,6 +61,14 @@
                                     <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -0.42" result="grain-alpha"/>
                                     <feComposite in="rough" in2="grain-alpha" operator="in"/>
                                 </filter>
+                                <mask id="write" maskUnits="userSpaceOnUse" x="0" y="0" width="240" height="240">
+                                    <g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+                                        <path class="seal-write" pathLength="1" d="M 94 82 L 72 150"/>
+                                        <path class="seal-write" pathLength="1" d="M 119 82 L 96 150"/>
+                                        <path class="seal-write" pathLength="1" d="M 106 114 C 114 100, 128 99, 134 108 C 138 114, 130 132, 122 151"/>
+                                        <path class="seal-write" pathLength="1" d="M 149 146 L 150 146"/>
+                                    </g>
+                                </mask>
                             </defs>
                             <g filter="url(#ink)">
                                 <circle class="seal-ring" cx="120" cy="120" r="118" fill="none" stroke="currentColor" stroke-width="2" pathLength="1"/>
@@ -69,9 +77,7 @@
                                 <text class="seal-text"><textPath href="#seal-bottom" startOffset="50%" text-anchor="middle">Sombor · Serbia</textPath></text>
                                 <circle class="seal-text" cx="9" cy="120" r="2.5" fill="currentColor"/>
                                 <circle class="seal-text" cx="231" cy="120" r="2.5" fill="currentColor"/>
-                                <text class="seal-monogram" x="116" y="152" text-anchor="middle">lh<tspan class="seal-dot">.</tspan></text>
-                                <path class="seal-signature" pathLength="1" d="M 69.9 150 C 77.3 132, 92.3 104, 103.5 86 C 108.1 79, 102.5 74, 95.1 84 C 90.4 96, 81.1 126, 77.3 150 C 76.4 156, 82.9 156, 88.5 148 C 96 128, 110.9 100, 125.9 86 C 130.5 79, 124.9 74, 117.5 84 C 112.8 96, 103.5 128, 99.7 150 C 105.3 124, 116.5 106, 127.7 108 C 138.9 110, 135.2 134, 131.5 150 C 129.6 158, 135.2 155, 138.9 148"/>
-                                <circle class="seal-signature-dot" cx="149.2" cy="146.3" r="5"/>
+                                <text class="seal-monogram" x="116" y="152" text-anchor="middle" mask="url(#write)">lh<tspan class="seal-dot">.</tspan></text>
                             </g>
                         </svg>
                     </div>

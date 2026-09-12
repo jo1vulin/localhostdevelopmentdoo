@@ -80,15 +80,13 @@ Scroll-triggered reveal via `IntersectionObserver` (native, no library): element
 ## Details for developers
 
 - **Rubber stamp.** The hero seal runs through an SVG filter (fractal noise shaped into alpha for ink dropout, a displacement map for edge wobble). Press and hold it; on release it re-inks with a new seed and a new angle.
-- **Signature.** On the first load of a session the seal draws itself: rings, then a single-stroke cursive `lh` (a hand-authored path animated with `pathLength` and `stroke-dashoffset`), then the copper dot, then a crossfade into the serif monogram. Skipped under `prefers-reduced-motion` and on later loads in the same session.
+- **Signature.** On the first load of a session the seal draws itself: the rings sketch in, then the monogram is written in print order (l, h stem, h arch and leg, dot). The letters are the real serif glyphs, revealed through an SVG mask whose four strokes follow the letterforms (`pathLength` plus `stroke-dashoffset`, one path per stroke because Chrome restarts dashes at every subpath). The last frame is the monogram itself, so nothing shifts at the end. Skipped under `prefers-reduced-motion` and on later loads in the same session.
 - **Console banner.** Opening DevTools prints the wordmark in ASCII and a short note about how the site is built.
 - **Hidden terminal.** The backtick key (or clicking the footer seal) slides a terminal up from the bottom: `help`, `team`, `services`, `contact`, `time`, `history`, `cd <section>`, `stamp`, `cat company-info.txt`, `ls`, `sudo`, `clear`, `exit`. Command history with the arrow keys, tab completion, Escape to close. A nod to the site's first version.
 
 ## Open items
 
-- **Photos.** The brief calls for real photographs of the team and office instead of stock or illustration. Portraits are currently monogram placeholders: replace the `<span>` inside each `.portrait` with an `<img>` (4:5 ratio, `object-fit: cover` is already set). A team photo in "Who we are" is the strongest addition.
-- **Proof of competence.** A "Work" section with two or three concrete case studies (problem, what we did, result) is missing and is what balances the warmth. Needs real material.
-- **Numbers.** "Years working together" is deliberately unquantified in the copy; add the real figure once agreed.
+- **Photos.** Portraits show initials until the five square headshots are dropped into `img/team/` with the names listed in the README; nothing else to edit. A team photo in "Who we are" would be the strongest addition after that.
+- **Client sign-off.** See the Work section notes above: Continental and NTT DATA should agree to the naming, the descriptions, and the logos.
 - **Serbian version.** Slogans must sound natural in both languages; a `/sr/` page or language toggle is the next step if Serbian clients are a target.
 - **Social preview image.** No `og:image` yet; a 1200×630 PNG of the seal on paper is enough.
-- **Phone number.** The visible number (`+381 66 450 599`) and the `tel:` link (`+381664505099`) differ by one digit; carried over from the previous site, needs confirming.

@@ -349,25 +349,6 @@ ul {
     opacity: 1;
 }
 
-.seal-signature {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 4.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    opacity: 0;
-}
-
-.seal-signature-dot {
-    fill: var(--copper);
-    transform-box: fill-box;
-    transform-origin: center;
-    transform: scale(0);
-    opacity: 0;
-}
-
 .stamp.is-signing .seal-ring {
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
@@ -383,18 +364,28 @@ ul {
     animation: seal-fade-in 0.6s ease 0.8s forwards;
 }
 
-.stamp.is-signing .seal-monogram {
-    opacity: 0;
-    animation: seal-fade-in 0.6s ease 2.5s forwards;
+.stamp.is-signing .seal-write {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: seal-draw 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.stamp.is-signing .seal-signature {
-    opacity: 1;
-    animation: seal-draw 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.45s forwards, seal-fade-out 0.6s ease 2.5s forwards;
+.stamp.is-signing .seal-write:nth-child(1) {
+    animation-delay: 0.7s;
 }
 
-.stamp.is-signing .seal-signature-dot {
-    animation: seal-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) 2s forwards, seal-fade-out 0.6s ease 2.5s forwards;
+.stamp.is-signing .seal-write:nth-child(2) {
+    animation-delay: 1.2s;
+}
+
+.stamp.is-signing .seal-write:nth-child(3) {
+    animation-duration: 0.6s;
+    animation-delay: 1.65s;
+}
+
+.stamp.is-signing .seal-write:nth-child(4) {
+    animation-duration: 0.15s;
+    animation-delay: 2.35s;
 }
 
 @keyframes seal-draw {
@@ -409,28 +400,7 @@ ul {
     }
 }
 
-@keyframes seal-fade-out {
-    to {
-        opacity: 0;
-    }
-}
 
-@keyframes seal-pop {
-    from {
-        transform: scale(0);
-        opacity: 1;
-    }
-
-    70% {
-        transform: scale(1.3);
-        opacity: 1;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
 
 .seal-text {
     font-family: var(--font-body);
