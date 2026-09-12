@@ -61,13 +61,15 @@
                                 </filter>
                             </defs>
                             <g filter="url(#ink)">
-                                <circle cx="120" cy="120" r="118" fill="none" stroke="currentColor" stroke-width="2"/>
-                                <circle cx="120" cy="120" r="104" fill="none" stroke="currentColor" stroke-width="1"/>
+                                <circle class="seal-ring" cx="120" cy="120" r="118" fill="none" stroke="currentColor" stroke-width="2" pathLength="1"/>
+                                <circle class="seal-ring" cx="120" cy="120" r="104" fill="none" stroke="currentColor" stroke-width="1" pathLength="1"/>
                                 <text class="seal-text"><textPath href="#seal-top" startOffset="50%" text-anchor="middle">Localhost Development</textPath></text>
                                 <text class="seal-text"><textPath href="#seal-bottom" startOffset="50%" text-anchor="middle">Sombor · Serbia</textPath></text>
-                                <circle cx="9" cy="120" r="2.5" fill="currentColor"/>
-                                <circle cx="231" cy="120" r="2.5" fill="currentColor"/>
+                                <circle class="seal-text" cx="9" cy="120" r="2.5" fill="currentColor"/>
+                                <circle class="seal-text" cx="231" cy="120" r="2.5" fill="currentColor"/>
                                 <text class="seal-monogram" x="116" y="152" text-anchor="middle">lh<tspan class="seal-dot">.</tspan></text>
+                                <path class="seal-signature" pathLength="1" d="M 72 150 C 80 132, 96 104, 108 86 C 113 79, 107 74, 99 84 C 94 96, 84 126, 80 150 C 79 156, 86 156, 92 148 C 100 128, 116 100, 132 86 C 137 79, 131 74, 123 84 C 118 96, 108 128, 104 150 C 110 124, 122 106, 134 108 C 146 110, 142 134, 138 150 C 136 158, 142 155, 146 148"/>
+                                <circle class="seal-signature-dot" cx="153" cy="143" r="5"/>
                             </g>
                         </svg>
                     </div>
@@ -364,6 +366,18 @@
             </div>
         </div>
     </footer>
+
+    <div class="terminal" id="terminal" role="dialog" aria-label="Terminal" hidden>
+        <div class="terminal-bar">
+            <span class="terminal-title">localhost@development:~</span>
+            <span class="terminal-hint">esc to close</span>
+        </div>
+        <div class="terminal-output" id="terminal-output" aria-live="polite"></div>
+        <form class="terminal-form" id="terminal-form" autocomplete="off">
+            <label class="terminal-prompt" for="terminal-input">$</label>
+            <input class="terminal-input" id="terminal-input" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Command">
+        </form>
+    </div>
 
     <script src="js/main.js"></script>
 </body>

@@ -77,6 +77,13 @@ Before this goes live:
 
 Scroll-triggered reveal via `IntersectionObserver` (native, no library): elements fade and rise 16px as they enter the viewport; siblings stagger by 90 ms. Disabled under `prefers-reduced-motion`. Without JavaScript everything is visible.
 
+## Details for developers
+
+- **Rubber stamp.** The hero seal runs through an SVG filter (fractal noise shaped into alpha for ink dropout, a displacement map for edge wobble). Press and hold it; on release it re-inks with a new seed and a new angle.
+- **Signature.** On the first load of a session the seal draws itself: rings, then a single-stroke cursive `lh` (a hand-authored path animated with `pathLength` and `stroke-dashoffset`), then the copper dot, then a crossfade into the serif monogram. Skipped under `prefers-reduced-motion` and on later loads in the same session.
+- **Console banner.** Opening DevTools prints the wordmark in ASCII and a short note about how the site is built.
+- **Hidden terminal.** The backtick key (or clicking the footer seal) slides a terminal up from the bottom: `help`, `team`, `services`, `contact`, `time`, `history`, `cd <section>`, `stamp`, `cat company-info.txt`, `ls`, `sudo`, `clear`, `exit`. Command history with the arrow keys, tab completion, Escape to close. A nod to the site's first version.
+
 ## Open items
 
 - **Photos.** The brief calls for real photographs of the team and office instead of stock or illustration. Portraits are currently monogram placeholders: replace the `<span>` inside each `.portrait` with an `<img>` (4:5 ratio, `object-fit: cover` is already set). A team photo in "Who we are" is the strongest addition.
