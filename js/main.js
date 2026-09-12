@@ -12,9 +12,51 @@ document.addEventListener('DOMContentLoaded', () => {
     initCountUp();
     initLocalTime();
     initTerminal();
+    initBattleCode();
     initConsoleBanner();
     initYear();
 });
+
+function inBattle() {
+    return document.documentElement.classList.contains('battle');
+}
+
+function launchBattleCity() {
+    const run = () => {
+        if (!window.BattleCity) return false;
+        const ok = window.BattleCity.start();
+        if (!ok) console.log('Battle City needs a bigger screen. Try a desktop window.');
+        return ok;
+    };
+    if (window.BattleCity) return run();
+    const existing = document.querySelector('script[data-battle]');
+    if (existing) return true;
+    const script = document.createElement('script');
+    script.src = 'js/battle.js';
+    script.setAttribute('data-battle', '');
+    script.addEventListener('load', run);
+    document.body.appendChild(script);
+    return true;
+}
+
+function initBattleCode() {
+    const code = 'battlecity';
+    let buffer = '';
+    if (location.hash === '#battlecity') setTimeout(launchBattleCity, 600);
+    document.addEventListener('keydown', event => {
+        if (inBattle() || event.ctrlKey || event.metaKey || event.altKey) return;
+        const target = event.target;
+        if (target && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName))) return;
+        if (event.key.length !== 1) return;
+        const ch = event.key.toLowerCase();
+        if (ch === ' ') return;
+        buffer = (buffer + ch).slice(-code.length);
+        if (buffer === code) {
+            buffer = '';
+            launchBattleCity();
+        }
+    });
+}
 
 function currentTheme() {
     const name = document.documentElement.getAttribute('data-theme');
@@ -75,6 +117,7 @@ function initTheme() {
     if (active === 'cyber') loadCyberFont();
 
     document.addEventListener('keydown', event => {
+        if (inBattle()) return;
         if (event.key !== 't' || event.ctrlKey || event.metaKey || event.altKey) return;
         const target = event.target;
         if (target && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName))) return;
@@ -110,6 +153,7 @@ function initConsoleBanner() {
     console.log('Hand-written HTML, CSS and JavaScript. No framework, no build step, no tracking, no cookies.');
     console.log('The seal in the hero is an SVG filter (feTurbulence + feDisplacementMap). Press and hold it.');
     console.log('Press ` (backtick) for a terminal, or click the seal in the footer.');
+    console.log('Type battlecity. Anywhere on the page. You have been warned.');
     console.log('Say hello: jovan.vulin@localhostdevelopmentdoo.com');
 }
 
@@ -178,6 +222,7 @@ function initTerminal() {
             '  cd <section>      scroll to about, approach, work, team or contact',
             '  stamp             press the seal',
             '  theme <name>      paper, hearth or cyber (or just press t)',
+            '  battlecity        the page becomes the map. 20 enemy tanks. good luck.',
             '  ls, cat, pwd      the usual',
             '  clear, exit       tidy up, close',
         ]),
@@ -272,6 +317,11 @@ function initTerminal() {
             if (setTheme(want)) return print(`Theme: ${want}.`);
             print(`theme: unknown theme: ${want}. Try ${THEMES.join(', ')}.`);
         },
+        battlecity: () => {
+            print('Loading. Arrows or WASD to move, space to fire, Esc to come back.');
+            close();
+            setTimeout(launchBattleCity, 380);
+        },
         echo: args => print(args.join(' ')),
         sudo: () => print('Nice try. Jovan has the root password; his email is under contact.'),
         clear: () => { output.replaceChildren(); },
@@ -327,6 +377,7 @@ function initTerminal() {
     const isEditing = target => target && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName)) && target !== input;
 
     document.addEventListener('keydown', event => {
+        if (inBattle()) return;
         if (event.key === '`' && !event.ctrlKey && !event.metaKey && !event.altKey) {
             if (isEditing(event.target)) return;
             if (event.target === input && input.value) return;

@@ -1606,3 +1606,23 @@ html.theme-glitch body {
         transition: none;
     }
 }
+
+.battle-city {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.4s var(--ease);
+}
+
+.battle-city.is-on {
+    opacity: 1;
+}
+
+.battle-city canvas {
+    display: block;
+    image-rendering: pixelated;
+}

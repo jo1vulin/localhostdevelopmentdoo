@@ -28,6 +28,10 @@ Palette, typography, logo and tone are documented in `docs/plans/2026-09-11-bran
 
 Press `t` on the page to cycle Paper (default), Hearth and Cyber, or open `?theme=cyber`. Paper is the brand; the other two are easter eggs and never the default.
 
+## Easter eggs
+
+Backtick opens a terminal (type `help`). Typing `battlecity` turns the page into a Battle City map for one round against 20 tanks; Esc brings the site back.
+
 ## Adding team photos
 
 Drop one JPEG per person into `img/team/`, named exactly:
