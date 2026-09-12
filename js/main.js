@@ -223,6 +223,7 @@ function initTerminal() {
             '  stamp             press the seal',
             '  theme <name>      paper, hearth or cyber (or just press t)',
             '  battlecity        the page becomes the map. 20 enemy tanks. good luck.',
+            '  scores            the Battle City scoreboard',
             '  ls, cat, pwd      the usual',
             '  clear, exit       tidy up, close',
         ]),
@@ -316,6 +317,30 @@ function initTerminal() {
             if (want === 'next') return print(`Theme: ${cycleTheme()}.`);
             if (setTheme(want)) return print(`Theme: ${want}.`);
             print(`theme: unknown theme: ${want}. Try ${THEMES.join(', ')}.`);
+        },
+        scores: async () => {
+            const api = ((document.querySelector('meta[name="score-api"]') || {}).content || '').trim();
+            let scores = [];
+            let scope = 'this browser';
+            try {
+                scores = JSON.parse(localStorage.getItem('lh-scores') || '[]');
+            } catch (err) {
+                scores = [];
+            }
+            if (api) {
+                try {
+                    const res = await fetch(api, { cache: 'no-store' });
+                    const data = await res.json();
+                    scores = data.scores || [];
+                    scope = 'worldwide';
+                } catch (err) {
+                    scope = 'this browser (scoreboard offline)';
+                }
+            }
+            scores = scores.slice().sort((a, b) => b.score - a.score || b.killed - a.killed).slice(0, 10);
+            if (!scores.length) return print('No scores yet. Type battlecity and change that.');
+            print(`Battle City top ${scores.length}, ${scope}:`);
+            scores.forEach((row, i) => print(`  ${String(i + 1).padStart(2, '0')}  ${String(row.name).padEnd(13)} ${String(row.score).padStart(5)}  ${row.killed} tanks${row.won ? ' (cleared)' : ''}`));
         },
         battlecity: () => {
             print('Loading. Arrows or WASD to move, space to fire, Esc to come back.');

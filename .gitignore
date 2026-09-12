@@ -1,2 +1,4 @@
 .idea/
 *.pdf
+scoreboard/.wrangler/
+scoreboard/node_modules/

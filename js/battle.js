@@ -22,6 +22,155 @@
 
     let G = null;
     const audio = { ctx: null, muted: false, noise: null };
+    const SCORE_API = ((document.querySelector('meta[name="score-api"]') || {}).content || '').trim();
+    const MAX_NAME = 12;
+    const MAX_SCORE = 8000;
+
+    function sortScores(list) {
+        return list.sort((a, b) => b.score - a.score || b.killed - a.killed || String(a.at).localeCompare(String(b.at)));
+    }
+
+    function loadLocalScores() {
+        try {
+            const list = JSON.parse(localStorage.getItem('lh-scores') || '[]');
+            return Array.isArray(list) ? list : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function saveLocalScores(list) {
+        try {
+            localStorage.setItem('lh-scores', JSON.stringify(list.slice(0, 50)));
+        } catch (err) {
+            return;
+        }
+    }
+
+    async function fetchScores() {
+        const local = sortScores(loadLocalScores()).slice(0, 10);
+        if (!SCORE_API) return { scores: local, local: true };
+        try {
+            const res = await fetch(SCORE_API, { method: 'GET', mode: 'cors', cache: 'no-store' });
+            if (!res.ok) throw new Error(String(res.status));
+            const data = await res.json();
+            return { scores: (data.scores || []).slice(0, 10), local: false };
+        } catch (err) {
+            return { scores: local, local: true, offline: true };
+        }
+    }
+
+    async function submitScore(entry) {
+        const local = loadLocalScores();
+        local.push(entry);
+        sortScores(local);
+        saveLocalScores(local);
+        const localResult = { scores: local.slice(0, 10), rank: local.indexOf(entry) + 1, local: true };
+        if (!SCORE_API) return localResult;
+        try {
+            const res = await fetch(SCORE_API, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(entry) });
+            if (!res.ok) throw new Error(String(res.status));
+            const data = await res.json();
+            return { scores: (data.scores || []).slice(0, 10), rank: data.rank || null, local: false };
+        } catch (err) {
+            return Object.assign(localResult, { offline: true });
+        }
+    }
+
+    function currentTheme() {
+        const name = document.documentElement.getAttribute('data-theme');
+        return name === 'hearth' || name === 'cyber' ? name : 'paper';
+    }
+
+    function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    function clearPanel() {
+        if (!G || !G.panel) return;
+        G.panel.replaceChildren();
+        G.panel.hidden = true;
+        G.panelMode = null;
+    }
+
+    function showNameForm() {
+        const panel = G.panel;
+        panel.replaceChildren();
+        G.panelMode = 'name';
+        panel.appendChild(el('h2', 'battle-title', G.won ? 'STAGE CLEAR' : 'GAME OVER'));
+        panel.appendChild(el('p', 'battle-sub', `score ${G.score}   ${G.killed} tank${G.killed === 1 ? '' : 's'}`));
+        const form = el('form', 'battle-form');
+        const label = el('label', 'battle-label', 'ENTER YOUR NAME');
+        label.htmlFor = 'battle-name';
+        const input = el('input', 'battle-input');
+        input.id = 'battle-name';
+        input.type = 'text';
+        input.maxLength = MAX_NAME;
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        try {
+            input.value = localStorage.getItem('lh-player') || '';
+        } catch (err) {
+            input.value = '';
+        }
+        const button = el('button', 'battle-button', 'SAVE');
+        button.type = 'submit';
+        form.append(label, input, button);
+        panel.appendChild(form);
+        panel.appendChild(el('p', 'battle-hint', 'ENTER to save   ESC to skip'));
+        panel.hidden = false;
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            const name = input.value.replace(/[^\p{L}\p{N} _.'-]/gu, '').trim().slice(0, MAX_NAME) || 'anon';
+            try {
+                localStorage.setItem('lh-player', name);
+            } catch (err) {}
+            const entry = { name, score: G.score, killed: G.killed, won: G.won, theme: currentTheme(), at: new Date().toISOString() };
+            G.panelMode = 'busy';
+            submitScore(entry).then(result => {
+                if (!G) return;
+                showBoard(result, entry);
+            });
+        });
+        setTimeout(() => input.focus(), 50);
+    }
+
+    function showBoard(result, mine) {
+        const panel = G.panel;
+        panel.replaceChildren();
+        G.panelMode = 'board';
+        panel.appendChild(el('h2', 'battle-title', G.won ? 'STAGE CLEAR' : 'GAME OVER'));
+        const scope = result.local ? (result.offline ? 'scoreboard offline, saved in this browser' : 'scoreboard for this browser') : 'top 10 worldwide';
+        panel.appendChild(el('p', 'battle-sub', scope));
+        const list = el('ol', 'battle-scores');
+        if (!result.scores.length) list.appendChild(el('li', 'battle-empty', 'no scores yet. be the first.'));
+        result.scores.forEach((row, index) => {
+            const item = el('li', 'battle-row');
+            const isMine = mine && row.at === mine.at && row.name === mine.name && row.score === mine.score;
+            if (isMine) item.classList.add('is-mine');
+            item.append(
+                el('span', 'battle-rank', String(index + 1).padStart(2, '0')),
+                el('span', 'battle-name', row.name),
+                el('span', 'battle-score', String(row.score)),
+                el('span', 'battle-kills', `${row.killed} tank${row.killed === 1 ? '' : 's'}${row.won ? ' \u2713' : ''}`)
+            );
+            list.appendChild(item);
+        });
+        panel.appendChild(list);
+        if (mine && result.rank && result.rank > 10) panel.appendChild(el('p', 'battle-sub', `you are #${result.rank}`));
+        panel.appendChild(el('p', 'battle-hint', 'R play again   ESC back to the site'));
+        panel.hidden = false;
+    }
+
+    function onRoundEnd() {
+        if (G.score > 0) showNameForm();
+        else fetchScores().then(result => {
+            if (G) showBoard(result, null);
+        });
+    }
 
     function cssVar(name, fallback) {
         const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -472,6 +621,10 @@
         if (G.paused) return;
         if (G.over) {
             G.overAt += dt;
+            if (G.overAt > 1 && !G.ended) {
+                G.ended = true;
+                onRoundEnd();
+            }
         }
 
         const player = G.player;
@@ -706,7 +859,8 @@
         drawBase(ctx, pal);
         ctx.globalAlpha = 1;
         if (G.phase === 'intro') {
-            if (G.time > 0.7) drawBanner(ctx, pal, 'STAGE 1', 'the page is the map. defend the stamp.');
+            const best = G.best ? `high score ${G.best.name} ${G.best.score}` : 'the page is the map. defend the stamp.';
+            if (G.time > 0.7) drawBanner(ctx, pal, 'STAGE 1', best);
             return;
         }
         for (const tank of G.tanks) if (tank.alive) drawTank(ctx, tank, pal);
@@ -715,7 +869,7 @@
         drawEffects(ctx, pal);
         drawHud(ctx, pal);
         if (G.paused) drawBanner(ctx, pal, 'PAUSE', 'P to continue');
-        if (G.over && G.overAt > 0.8) drawBanner(ctx, pal, G.won ? 'STAGE CLEAR' : 'GAME OVER', `score ${G.score}   R play again   ESC back to the site`);
+        if (G.over && G.overAt > 0.8 && !G.panelMode) drawBanner(ctx, pal, G.won ? 'STAGE CLEAR' : 'GAME OVER', `score ${G.score}`);
     }
 
     function frame() {
@@ -731,6 +885,26 @@
     function onKeyDown(event) {
         if (!G) return;
         const key = event.key;
+        if (G.panelMode === 'name' || G.panelMode === 'busy') {
+            if (key === 'Escape') {
+                event.preventDefault();
+                G.panelMode = 'busy';
+                fetchScores().then(result => {
+                    if (G) showBoard(result, null);
+                });
+            }
+            return;
+        }
+        if (G.panelMode === 'board') {
+            if (key === 'Escape') {
+                event.preventDefault();
+                stop();
+            } else if (key === 'r' || key === 'R') {
+                event.preventDefault();
+                restart();
+            }
+            return;
+        }
         if (key === 'Escape') {
             event.preventDefault();
             stop();
@@ -794,6 +968,8 @@
         G.baseDead = false;
         G.spawnIndex = 0;
         G.spawnTimer = 0;
+        G.ended = false;
+        clearPanel();
         const player = makeTank('player', map.playerSpawn.x, map.playerSpawn.y, 'up');
         G.tanks.push(player);
         G.player = player;
@@ -815,6 +991,8 @@
         const map = scanMap(cols, rows, W, H);
         const wrap = document.createElement('div');
         wrap.className = 'battle-city';
+        const panel = el('div', 'battle-panel');
+        panel.hidden = true;
         const canvas = document.createElement('canvas');
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         canvas.width = W * dpr;
@@ -822,13 +1000,17 @@
         canvas.style.width = W + 'px';
         canvas.style.height = H + 'px';
         wrap.appendChild(canvas);
+        wrap.appendChild(panel);
         document.body.appendChild(wrap);
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
         ctx.imageSmoothingEnabled = false;
 
-        G = { W, H, cols, rows, canvas, ctx, wrap, map, pal: palette(), maxOnScreen: cols * rows > 3000 ? 6 : 4, last: performance.now(), raf: 0 };
+        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map, pal: palette(), maxOnScreen: cols * rows > 3000 ? 6 : 4, last: performance.now(), raf: 0, best: null };
         setupState(map);
+        fetchScores().then(result => {
+            if (G && result.scores.length) G.best = result.scores[0];
+        });
         G.prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         document.documentElement.classList.add('battle');

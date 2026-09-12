@@ -1626,3 +1626,138 @@ html.theme-glitch body {
     display: block;
     image-rendering: pixelated;
 }
+
+.battle-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(92vw, 460px);
+    padding: 1.5rem 1.75rem 1.25rem;
+    background: rgba(var(--footer-rgb), 0.94);
+    color: var(--on-dark);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    border: 1px solid rgba(var(--on-dark-rgb), 0.25);
+    box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+}
+
+.battle-title {
+    font-family: var(--font-mono);
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.25rem;
+}
+
+.battle-sub {
+    color: rgba(var(--on-dark-rgb), 0.7);
+    margin-bottom: 1rem;
+    max-width: none;
+}
+
+.battle-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem 0.75rem;
+    align-items: center;
+    margin-block: 0.5rem 0.75rem;
+}
+
+.battle-label {
+    grid-column: 1 / -1;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    color: var(--copper);
+}
+
+.battle-input {
+    font: inherit;
+    font-size: 1.1rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--on-dark);
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid rgba(var(--on-dark-rgb), 0.5);
+    padding: 0.4rem 0;
+    min-width: 0;
+    caret-color: var(--copper);
+}
+
+.battle-input:focus {
+    outline: none;
+    border-bottom-color: var(--copper);
+}
+
+.battle-button {
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--footer-bg);
+    background: var(--copper);
+    border: 0;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+}
+
+.battle-scores {
+    list-style: none;
+    padding: 0;
+    margin-block: 0.25rem 1rem;
+    border-top: 1px solid rgba(var(--on-dark-rgb), 0.2);
+}
+
+.battle-row,
+.battle-empty {
+    display: grid;
+    grid-template-columns: 2ch 1fr auto auto;
+    gap: 0 1rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(var(--on-dark-rgb), 0.12);
+}
+
+.battle-empty {
+    display: block;
+    color: rgba(var(--on-dark-rgb), 0.6);
+}
+
+.battle-row.is-mine {
+    color: var(--copper);
+}
+
+.battle-rank {
+    color: rgba(var(--on-dark-rgb), 0.6);
+}
+
+.battle-row.is-mine .battle-rank {
+    color: inherit;
+}
+
+.battle-name {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.battle-score {
+    font-weight: 700;
+}
+
+.battle-kills {
+    color: rgba(var(--on-dark-rgb), 0.6);
+    font-size: 0.75rem;
+}
+
+.battle-row.is-mine .battle-kills {
+    color: inherit;
+}
+
+.battle-hint {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: rgba(var(--on-dark-rgb), 0.55);
+    max-width: none;
+}
