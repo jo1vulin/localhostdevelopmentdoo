@@ -15,22 +15,19 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSignature() {
     const stamp = document.getElementById('stamp');
     if (!stamp) return;
+    if (document.documentElement.classList.contains('signing')) {
+        const strokes = stamp.querySelectorAll('.seal-write');
+        const last = strokes[strokes.length - 1];
+        if (last) last.addEventListener('animationend', () => document.documentElement.classList.remove('signing'), { once: true });
+    }
+}
+
+function replaySignature(stamp) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    let signed = false;
-    try {
-        signed = sessionStorage.getItem('lh-signed') === '1';
-    } catch (err) {
-        signed = false;
-    }
-    if (signed) return;
-
-    setTimeout(() => stamp.classList.add('is-signing'), 250);
-    try {
-        sessionStorage.setItem('lh-signed', '1');
-    } catch (err) {
-        return;
-    }
+    document.documentElement.classList.remove('signing');
+    stamp.classList.remove('is-signing');
+    void stamp.offsetWidth;
+    stamp.classList.add('is-signing');
 }
 
 function initConsoleBanner() {
@@ -329,6 +326,7 @@ function initStamp() {
         stamp.classList.add('is-fresh');
         stamp.style.setProperty('--stamp-rot', `${(-9 + Math.random() * 4).toFixed(1)}deg`);
         reink();
+        replaySignature(stamp);
         clearTimeout(freshTimer);
         freshTimer = setTimeout(() => stamp.classList.remove('is-fresh'), 1200);
     };
