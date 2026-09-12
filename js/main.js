@@ -1,4 +1,8 @@
+const THEMES = ['paper', 'hearth', 'cyber'];
+const THEME_COLORS = { paper: '#EDE7DA', hearth: '#1D1917', cyber: '#0B0A12' };
+
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initNav();
     initCopyButtons();
     initReveal();
@@ -11,6 +15,73 @@ document.addEventListener('DOMContentLoaded', () => {
     initConsoleBanner();
     initYear();
 });
+
+function currentTheme() {
+    const name = document.documentElement.getAttribute('data-theme');
+    return THEMES.includes(name) ? name : 'paper';
+}
+
+function loadCyberFont() {
+    if (document.querySelector('link[data-cyber-font]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap';
+    link.setAttribute('data-cyber-font', '');
+    document.head.appendChild(link);
+}
+
+function setTheme(name) {
+    if (!THEMES.includes(name)) return false;
+    const root = document.documentElement;
+    const previous = currentTheme();
+    if (name === 'cyber') loadCyberFont();
+    if (name === 'paper') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', name);
+
+    root.classList.add('theme-fade');
+    setTimeout(() => root.classList.remove('theme-fade'), 500);
+    if (name === 'cyber' && previous !== 'cyber') {
+        root.classList.remove('theme-glitch');
+        void root.offsetWidth;
+        root.classList.add('theme-glitch');
+        setTimeout(() => root.classList.remove('theme-glitch'), 600);
+    }
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_COLORS[name]);
+    document.querySelectorAll('[data-theme-pick]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.getAttribute('data-theme-pick') === name));
+    });
+    try {
+        localStorage.setItem('lh-theme', name);
+    } catch (err) {
+        return true;
+    }
+    return true;
+}
+
+function cycleTheme() {
+    const next = THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length];
+    setTheme(next);
+    return next;
+}
+
+function initTheme() {
+    const active = currentTheme();
+    document.querySelectorAll('[data-theme-pick]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.getAttribute('data-theme-pick') === active));
+        button.addEventListener('click', () => setTheme(button.getAttribute('data-theme-pick')));
+    });
+    if (active === 'cyber') loadCyberFont();
+
+    document.addEventListener('keydown', event => {
+        if (event.key !== 't' || event.ctrlKey || event.metaKey || event.altKey) return;
+        const target = event.target;
+        if (target && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName))) return;
+        event.preventDefault();
+        cycleTheme();
+    });
+}
 
 function initSignature() {
     const stamp = document.getElementById('stamp');
@@ -106,6 +177,7 @@ function initTerminal() {
             '  history           how this site got here',
             '  cd <section>      scroll to about, approach, work, team or contact',
             '  stamp             press the seal',
+            '  theme <name>      paper, hearth or cyber (or just press t)',
             '  ls, cat, pwd      the usual',
             '  clear, exit       tidy up, close',
         ]),
@@ -192,6 +264,13 @@ function initTerminal() {
             if (file === 'README.md') return print('Open index.html in a browser. That is it.');
             if (!file) return print('cat: what?');
             print(`cat: ${file}: No such file or directory`);
+        },
+        theme: args => {
+            const want = (args[0] || '').toLowerCase();
+            if (!want) return printLines([`Current theme: ${currentTheme()}.`, `Available: ${THEMES.join(', ')}. Usage: theme <name> or theme next`]);
+            if (want === 'next') return print(`Theme: ${cycleTheme()}.`);
+            if (setTheme(want)) return print(`Theme: ${want}.`);
+            print(`theme: unknown theme: ${want}. Try ${THEMES.join(', ')}.`);
         },
         echo: args => print(args.join(' ')),
         sudo: () => print('Nice try. Jovan has the root password; his email is under contact.'),

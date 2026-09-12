@@ -20,6 +20,18 @@
     <script>
         document.documentElement.classList.add('js');
         try {
+            var theme = new URLSearchParams(location.search).get('theme') || localStorage.getItem('lh-theme');
+            if (theme === 'hearth' || theme === 'cyber') {
+                document.documentElement.setAttribute('data-theme', theme);
+                if (theme === 'cyber') {
+                    var font = document.createElement('link');
+                    font.rel = 'stylesheet';
+                    font.href = 'https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap';
+                    document.head.appendChild(font);
+                }
+            }
+        } catch (err) {}
+        try {
             if (!sessionStorage.getItem('lh-signed') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 document.documentElement.classList.add('signing');
                 sessionStorage.setItem('lh-signed', '1');
@@ -379,6 +391,13 @@
                 <p class="footer-brand">localhost<span class="brand-dot">.</span> development d.o.o.</p>
                 <p class="footer-meta">Localhost Development DOO Sombor · Ratarska BB, 25000 Sombor, Serbia<br>VAT 111936819 · Company ID 21576930 · Activity 6201 (Software development)</p>
                 <p class="footer-copy">© <span id="year">2026</span> Localhost Development. All five of us.</p>
+                <div class="theme-switch" role="group" aria-label="Site theme">
+                    <span>theme</span>
+                    <button type="button" data-theme-pick="paper" aria-pressed="true">Paper</button>
+                    <button type="button" data-theme-pick="hearth" aria-pressed="false">Hearth</button>
+                    <button type="button" data-theme-pick="cyber" aria-pressed="false">Cyber</button>
+                    <span>or press t</span>
+                </div>
             </div>
         </div>
     </footer>

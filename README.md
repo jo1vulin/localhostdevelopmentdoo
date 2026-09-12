@@ -24,6 +24,10 @@ python -m http.server 8000
 
 Palette, typography, logo and tone are documented in `docs/plans/2026-09-11-brand-redesign.md`. The palette options that led to it are in `docs/localhost-development-palettes.html`.
 
+## Themes
+
+Press `t` on the page to cycle Paper (default), Hearth and Cyber, or open `?theme=cyber`. Paper is the brand; the other two are easter eggs and never the default.
+
 ## Adding team photos
 
 Drop one JPEG per person into `img/team/`, named exactly:
