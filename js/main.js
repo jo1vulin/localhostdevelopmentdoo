@@ -3,8 +3,101 @@ document.addEventListener('DOMContentLoaded', () => {
     initCopyButtons();
     initReveal();
     initPortraits();
+    initStamp();
+    initCountUp();
+    initLocalTime();
     initYear();
 });
+
+function initStamp() {
+    const stamp = document.getElementById('stamp');
+    if (!stamp) return;
+
+    const turbulence = stamp.querySelectorAll('feTurbulence');
+    let freshTimer;
+
+    const reink = () => {
+        const seed = String(Math.floor(Math.random() * 1000));
+        turbulence.forEach(node => node.setAttribute('seed', seed));
+    };
+
+    const press = event => {
+        if (event.button !== undefined && event.button !== 0) return;
+        stamp.classList.add('is-pressed');
+    };
+
+    const release = () => {
+        if (!stamp.classList.contains('is-pressed')) return;
+        stamp.classList.remove('is-pressed');
+        stamp.classList.add('is-fresh');
+        stamp.style.setProperty('--stamp-rot', `${(-9 + Math.random() * 4).toFixed(1)}deg`);
+        reink();
+        clearTimeout(freshTimer);
+        freshTimer = setTimeout(() => stamp.classList.remove('is-fresh'), 1200);
+    };
+
+    stamp.addEventListener('pointerdown', press);
+    stamp.addEventListener('pointerup', release);
+    stamp.addEventListener('pointercancel', release);
+    stamp.addEventListener('pointerleave', release);
+}
+
+function initCountUp() {
+    const values = document.querySelectorAll('.facts dd');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!values.length || reduceMotion || !('IntersectionObserver' in window)) return;
+
+    const run = dd => {
+        const finalText = dd.textContent;
+        const parts = finalText.split(/(\d+)/);
+        const start = performance.now();
+        const duration = 900;
+        const frame = now => {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            dd.textContent = parts.map(part => /^\d+$/.test(part) ? String(Math.round(Number(part) * eased)) : part).join('');
+            if (t < 1) requestAnimationFrame(frame);
+            else dd.textContent = finalText;
+        };
+        requestAnimationFrame(frame);
+    };
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            run(entry.target);
+            observer.unobserve(entry.target);
+        });
+    }, { threshold: 0.6 });
+
+    values.forEach(dd => observer.observe(dd));
+}
+
+function initLocalTime() {
+    const time = document.getElementById('sombor-time');
+    const zone = document.getElementById('sombor-zone');
+    if (!time || !zone || typeof Intl === 'undefined') return;
+
+    let clock;
+    let zoneName;
+    try {
+        clock = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Belgrade', hour: '2-digit', minute: '2-digit' });
+        zoneName = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Belgrade', timeZoneName: 'short' });
+    } catch (err) {
+        return;
+    }
+
+    const tick = () => {
+        const now = new Date();
+        time.textContent = clock.format(now);
+        const part = zoneName.formatToParts(now).find(p => p.type === 'timeZoneName');
+        zone.textContent = part ? ` (${part.value})` : '';
+    };
+
+    tick();
+    time.closest('.local-time').hidden = false;
+    setInterval(tick, 30000);
+}
 
 function initPortraits() {
     document.querySelectorAll('.portrait img').forEach(img => {

@@ -314,11 +314,39 @@ ul {
     color: var(--graphite);
 }
 
+.stamp {
+    --stamp-rot: -7deg;
+    display: inline-block;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transform: rotate(var(--stamp-rot)) translateY(0) scale(1);
+    transition: transform 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+    will-change: transform;
+}
+
+.stamp:hover {
+    transform: rotate(var(--stamp-rot)) translateY(-3px) scale(1);
+}
+
+.stamp.is-pressed {
+    transform: rotate(var(--stamp-rot)) translateY(1px) scale(0.94);
+    transition-duration: 0.09s;
+    transition-timing-function: ease-in;
+}
+
 .hero-mark .seal {
-    transform: rotate(-7deg);
+    display: block;
     mix-blend-mode: multiply;
-    opacity: 0.92;
-    filter: drop-shadow(0 1px 0 rgba(237, 231, 218, 0.8));
+    opacity: 0.9;
+    transition: opacity 0.3s var(--ease);
+}
+
+.stamp.is-pressed .seal,
+.stamp.is-fresh .seal {
+    opacity: 1;
 }
 
 .seal-text {
@@ -781,6 +809,17 @@ ul {
     max-width: 32em;
 }
 
+.local-time {
+    margin-top: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--sand);
+}
+
+.local-time span {
+    color: var(--paper);
+}
+
 .contact-list {
     display: grid;
     gap: 1.75rem;
@@ -920,8 +959,8 @@ ul {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .hero-mark .seal {
-        transform: rotate(-5deg);
+    .stamp {
+        --stamp-rot: -5deg;
     }
 
     .about-grid {
@@ -1014,6 +1053,13 @@ ul {
     .member:hover .portrait,
     .btn:hover {
         transform: none;
+    }
+
+    .stamp,
+    .stamp:hover,
+    .stamp.is-pressed {
+        transform: rotate(var(--stamp-rot));
+        transition: none;
     }
 
     *,

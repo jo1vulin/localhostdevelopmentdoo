@@ -47,19 +47,30 @@
                     </div>
                 </div>
                 <div class="hero-mark reveal" aria-hidden="true">
-                    <svg class="seal" viewBox="0 0 240 240" focusable="false">
-                        <defs>
-                            <path id="seal-top" d="M 13,120 A 107,107 0 0 1 227,120"/>
-                            <path id="seal-bottom" d="M 5,120 A 115,115 0 0 0 235,120"/>
-                        </defs>
-                        <circle cx="120" cy="120" r="118" fill="none" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="120" cy="120" r="104" fill="none" stroke="currentColor" stroke-width="1"/>
-                        <text class="seal-text"><textPath href="#seal-top" startOffset="50%" text-anchor="middle">Localhost Development</textPath></text>
-                        <text class="seal-text"><textPath href="#seal-bottom" startOffset="50%" text-anchor="middle">Sombor · Serbia</textPath></text>
-                        <circle cx="9" cy="120" r="2.5" fill="currentColor"/>
-                        <circle cx="231" cy="120" r="2.5" fill="currentColor"/>
-                        <text class="seal-monogram" x="116" y="152" text-anchor="middle">lh<tspan class="seal-dot">.</tspan></text>
-                    </svg>
+                    <div class="stamp" id="stamp">
+                        <svg class="seal" viewBox="0 0 240 240" focusable="false">
+                            <defs>
+                                <path id="seal-top" d="M 13,120 A 107,107 0 0 1 227,120"/>
+                                <path id="seal-bottom" d="M 5,120 A 115,115 0 0 0 235,120"/>
+                                <filter id="ink" x="-6%" y="-6%" width="112%" height="112%" color-interpolation-filters="sRGB">
+                                    <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="11" result="warp"/>
+                                    <feDisplacementMap in="SourceGraphic" in2="warp" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+                                    <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="11" result="grain"/>
+                                    <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -0.42" result="grain-alpha"/>
+                                    <feComposite in="rough" in2="grain-alpha" operator="in"/>
+                                </filter>
+                            </defs>
+                            <g filter="url(#ink)">
+                                <circle cx="120" cy="120" r="118" fill="none" stroke="currentColor" stroke-width="2"/>
+                                <circle cx="120" cy="120" r="104" fill="none" stroke="currentColor" stroke-width="1"/>
+                                <text class="seal-text"><textPath href="#seal-top" startOffset="50%" text-anchor="middle">Localhost Development</textPath></text>
+                                <text class="seal-text"><textPath href="#seal-bottom" startOffset="50%" text-anchor="middle">Sombor · Serbia</textPath></text>
+                                <circle cx="9" cy="120" r="2.5" fill="currentColor"/>
+                                <circle cx="231" cy="120" r="2.5" fill="currentColor"/>
+                                <text class="seal-monogram" x="116" y="152" text-anchor="middle">lh<tspan class="seal-dot">.</tspan></text>
+                            </g>
+                        </svg>
+                    </div>
                 </div>
             </div>
         </section>
@@ -305,6 +316,7 @@
                     <p class="kicker reveal">05 · contact</p>
                     <h2 class="reveal">Talk to a person.</h2>
                     <p class="contact-lede reveal">No forms, no ticket numbers. Write or call and you’ll reach Jovan: one of the five, not a sales desk.</p>
+                    <p class="local-time reveal" hidden>It’s <span id="sombor-time"></span> in Sombor right now<span id="sombor-zone"></span>.</p>
                 </div>
                 <dl class="contact-list reveal">
                     <div class="contact-item">
