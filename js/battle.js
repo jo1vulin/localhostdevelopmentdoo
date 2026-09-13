@@ -291,12 +291,60 @@
         set(bx, by + 1, BASE);
         set(bx + 1, by + 1, BASE);
 
+        ensurePath(grid, cols, rows, bx, by);
+
         return {
             grid,
             base: { x: bx * TILE, y: by * TILE },
             playerSpawn: { x: (bx - 6) * TILE, y: by * TILE },
             spawns: [{ x: 0, y: 0 }, { x: (Math.floor(cols / 2) - 1) * TILE, y: 0 }, { x: (cols - 2) * TILE, y: 0 }],
         };
+    }
+
+    function ensurePath(grid, cols, rows, bx, by) {
+        const positions = cols * rows;
+        const cost = new Int32Array(positions).fill(1 << 30);
+        const parent = new Int32Array(positions).fill(-1);
+        const at = (c, r) => grid[r * cols + c];
+        const footprint = (c, r) => [[c, r], [c + 1, r], [c, r + 1], [c + 1, r + 1]];
+        const valid = (c, r) => c >= 0 && r >= 0 && c + 1 < cols && r + 1 < rows && footprint(c, r).every(([tc, tr]) => at(tc, tr) !== BASE);
+        const steelIn = (c, r) => footprint(c, r).some(([tc, tr]) => at(tc, tr) === STEEL) ? 1 : 0;
+        const deque = [];
+        let head = 0;
+        for (let c = 0; c + 1 < cols; c++) {
+            if (!valid(c, 0)) continue;
+            cost[c] = steelIn(c, 0);
+            deque.push(c);
+        }
+        while (head < deque.length) {
+            const index = deque[head++];
+            const c = index % cols;
+            const r = Math.floor(index / cols);
+            for (const [dc, dr] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+                const nc = c + dc;
+                const nr = r + dr;
+                if (!valid(nc, nr)) continue;
+                const next = nr * cols + nc;
+                const total = cost[index] + steelIn(nc, nr);
+                if (total < cost[next]) {
+                    cost[next] = total;
+                    parent[next] = index;
+                    if (steelIn(nc, nr)) deque.push(next);
+                    else deque.splice(head, 0, next);
+                }
+            }
+        }
+        let best = -1;
+        for (let c = Math.max(0, bx - 9); c <= Math.min(cols - 2, bx + 9); c++) {
+            const index = (rows - 6) * cols + c;
+            if (valid(c, rows - 6) && (best === -1 || cost[index] < cost[best])) best = index;
+        }
+        if (best === -1 || cost[best] === 0 || cost[best] >= (1 << 30)) return;
+        for (let index = best; index !== -1; index = parent[index]) {
+            const c = index % cols;
+            const r = Math.floor(index / cols);
+            for (const [tc, tr] of footprint(c, r)) if (at(tc, tr) === STEEL) grid[tr * cols + tc] = BRICK;
+        }
     }
 
     function enemyQueue(stage) {
@@ -1194,11 +1242,24 @@
         pause.type = 'button';
         pause.setAttribute('aria-label', 'Pause');
         pause.addEventListener('click', () => { if (G) G.paused = !G.paused; });
-        const quit = el('button', 'battle-sys-button', '\u2715');
+        const quit = el('button', 'battle-quit', 'QUIT');
         quit.type = 'button';
         quit.setAttribute('aria-label', 'Quit');
-        quit.addEventListener('click', () => stop());
-        sys.append(pause, quit);
+        let armed = 0;
+        quit.addEventListener('click', () => {
+            if (quit.classList.contains('is-armed')) {
+                stop();
+                return;
+            }
+            quit.classList.add('is-armed');
+            quit.textContent = 'SURE?';
+            clearTimeout(armed);
+            armed = setTimeout(() => {
+                quit.classList.remove('is-armed');
+                quit.textContent = 'QUIT';
+            }, 2500);
+        });
+        sys.append(quit, pause);
 
         const fire = el('button', 'battle-fire', 'FIRE');
         fire.type = 'button';
@@ -1373,5 +1434,5 @@
         render();
     }
 
-    window.BattleCity = { start, stop, state, tick };
+    window.BattleCity = { start, stop, state, tick, grid: () => (G ? { cols: G.cols, rows: G.rows, cells: Array.from(G.grid), base: G.base } : null) };
 })();

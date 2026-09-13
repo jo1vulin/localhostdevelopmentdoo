@@ -1958,9 +1958,10 @@ html.flipping body {
 }
 
 .battle-pad {
+    --cell: min(60px, calc((var(--strip, 176px) - 22px) / 3));
     display: grid;
-    grid-template-columns: repeat(3, 60px);
-    grid-template-rows: repeat(3, 60px);
+    grid-template-columns: repeat(3, var(--cell));
+    grid-template-rows: repeat(3, var(--cell));
     gap: 3px;
     touch-action: none;
 }
@@ -2001,7 +2002,9 @@ html.flipping body {
 
 .battle-sys {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
 }
 
 .battle-sys-button {
@@ -2015,9 +2018,25 @@ html.flipping body {
     padding: 0;
 }
 
+.battle-quit {
+    font: 700 11px var(--font-mono);
+    letter-spacing: 0.12em;
+    color: rgba(var(--on-dark-rgb), 0.6);
+    background: transparent;
+    border: 1px solid rgba(var(--on-dark-rgb), 0.25);
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.battle-quit.is-armed {
+    color: var(--footer-bg);
+    background: var(--bordeaux);
+    border-color: var(--bordeaux);
+}
+
 .battle-fire {
-    width: 106px;
-    height: 106px;
+    width: min(106px, calc(var(--strip, 176px) - 30px));
+    height: min(106px, calc(var(--strip, 176px) - 30px));
     border-radius: 50%;
     border: 0;
     font: 700 13px var(--font-mono);
