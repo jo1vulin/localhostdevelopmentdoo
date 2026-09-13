@@ -925,6 +925,10 @@
         for (const t of G.texts) t.t += dt;
         G.texts = G.texts.filter(t => t.t < t.life);
         setEngine(speedPercent, throttle);
+        const lateral = Math.abs(steer) * speedPercent * 1.5 + Math.abs(playerSegment.curve) * speedPercent * 0.3;
+        const braking = playing && G.brake && speedPercent > 0.3 ? 0.7 : 0;
+        const slip = G.air.y > 0 || G.speed < MAX_SPEED * 0.3 || G.phase === 'over' ? 0 : Math.max(0, lateral - 0.55) * 1.6 + braking + (G.spinTime > 0 ? 0.9 : 0);
+        setScreech(clamp(slip, 0, 1));
     }
 
     function finish() {
@@ -963,6 +967,41 @@
         if (!audio.filter) return;
         const target = 18000 - depth * 17000;
         audio.filter.frequency.setTargetAtTime(target, audio.ctx.currentTime, 0.15);
+    }
+
+    function setScreech(intensity) {
+        const ac = ensureAudio();
+        if (!ac) return;
+        if (!audio.screech) {
+            if (!audio.noiseBuffer) noise(ac.currentTime, 0.001, 0.0001, 1000, 'bandpass');
+            const src = ac.createBufferSource();
+            src.buffer = audio.noiseBuffer;
+            src.loop = true;
+            const band = ac.createBiquadFilter();
+            band.type = 'bandpass';
+            band.frequency.value = 2100;
+            band.Q.value = 7;
+            const lfo = ac.createOscillator();
+            lfo.type = 'triangle';
+            lfo.frequency.value = 11;
+            const lfoGain = ac.createGain();
+            lfoGain.gain.value = 420;
+            lfo.connect(lfoGain);
+            lfoGain.connect(band.frequency);
+            const gain = ac.createGain();
+            gain.gain.value = 0;
+            src.connect(band);
+            band.connect(gain);
+            gain.connect(audio.filter);
+            src.start();
+            lfo.start();
+            audio.screech = src;
+            audio.screechGain = gain;
+            audio.screechBand = band;
+        }
+        const now = ac.currentTime;
+        audio.screechGain.gain.setTargetAtTime(Math.min(1, intensity) * 0.22, now, intensity > 0 ? 0.03 : 0.12);
+        audio.screechBand.frequency.setTargetAtTime(1900 + intensity * 700, now, 0.05);
     }
 
     function setEngine(speedPercent, throttle) {
@@ -1354,6 +1393,7 @@
         cancelAnimationFrame(G.raf);
         stopMusic();
         if (audio.engineGain) audio.engineGain.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.05);
+        if (audio.screechGain) audio.screechGain.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.05);
         setTunnelFilter(0);
         window.removeEventListener('keydown', onKeyDown, true);
         window.removeEventListener('keyup', onKeyUp, true);
