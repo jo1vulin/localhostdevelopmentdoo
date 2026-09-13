@@ -163,7 +163,7 @@
         if (!result.scores.length) list.appendChild(el('li', 'battle-empty', 'no scores yet. be the first.'));
         result.scores.forEach((row, index) => {
             const item = el('li', 'battle-row');
-            const isMine = mine && row.at === mine.at && row.name === mine.name && row.score === mine.score;
+            const isMine = !!mine && ((result.rank && index === result.rank - 1) || (!result.rank && row.name === mine.name && row.score === mine.score));
             if (isMine) item.classList.add('is-mine');
             item.append(
                 el('span', 'battle-rank', String(index + 1).padStart(2, '0')),

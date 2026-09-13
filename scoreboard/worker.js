@@ -5,6 +5,10 @@ const MAX_KILLS = 220;
 const MAX_STAGE = 11;
 const BONUS_ALLOWANCE = 6000;
 const KEEP = 100;
+const GAMES = {
+    battle: { key: 'top', sort: (a, b) => b.score - a.score || b.killed - a.killed || String(a.at).localeCompare(String(b.at)) },
+    eleanor: { key: 'top:eleanor', sort: (a, b) => b.score - a.score || b.speed - a.speed || String(a.at).localeCompare(String(b.at)) },
+};
 const RATE_LIMIT = 12;
 const RATE_WINDOW = 600;
 
@@ -22,12 +26,16 @@ function json(body, headers, status = 200) {
     return new Response(JSON.stringify(body), { status, headers: { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 
-function sortScores(list) {
-    return list.sort((a, b) => b.score - a.score || b.killed - a.killed || String(a.at).localeCompare(String(b.at)));
+function gameOf(name) {
+    return GAMES[name] ? name : 'battle';
 }
 
-async function readTop(env) {
-    const raw = await env.SCORES.get('top');
+function sortScores(list, game) {
+    return list.sort(GAMES[game].sort);
+}
+
+async function readTop(env, game) {
+    const raw = await env.SCORES.get(GAMES[game].key);
     if (!raw) return [];
     try {
         const list = JSON.parse(raw);
@@ -43,8 +51,9 @@ export default {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
 
         if (request.method === 'GET') {
-            const top = await readTop(env);
-            return json({ scores: top.slice(0, 10) }, headers);
+            const game = gameOf(new URL(request.url).searchParams.get('game'));
+            const top = await readTop(env, game);
+            return json({ game, scores: top.slice(0, 10) }, headers);
         }
 
         if (request.method !== 'POST') return json({ error: 'method not allowed' }, headers, 405);
@@ -62,30 +71,38 @@ export default {
             return json({ error: 'bad json' }, headers, 400);
         }
 
+        const game = gameOf(body.game);
         const name = String(body.name || '').replace(/[^\p{L}\p{N} _.'-]/gu, '').trim().slice(0, MAX_NAME) || 'anon';
         const score = Number(body.score);
-        const killed = Number(body.killed);
-        const valid = Number.isInteger(score) && score >= 0 && score <= MAX_SCORE && score % 100 === 0
-            && Number.isInteger(killed) && killed >= 0 && killed <= MAX_KILLS && score <= killed * 400 + BONUS_ALLOWANCE;
-        const stage = Number.isInteger(Number(body.stage)) ? Math.min(MAX_STAGE, Math.max(1, Number(body.stage))) : 1;
-        if (!valid) return json({ error: 'nice try' }, headers, 400);
+        const theme = ['paper', 'hearth', 'cyber'].includes(body.theme) ? body.theme : 'paper';
+        let entry;
+        if (game === 'eleanor') {
+            const speed = Number(body.speed);
+            const jumps = Number(body.jumps);
+            const misses = Number(body.misses);
+            const crashes = Number(body.crashes);
+            const valid = Number.isInteger(score) && score >= 0 && score <= 4500
+                && Number.isInteger(speed) && speed >= 0 && speed <= 262
+                && Number.isInteger(jumps) && jumps >= 0 && jumps <= 40
+                && Number.isInteger(misses) && misses >= 0 && misses <= 200
+                && Number.isInteger(crashes) && crashes >= 0 && crashes <= 100;
+            if (!valid) return json({ error: 'nice try' }, headers, 400);
+            entry = { name, score, speed, jumps, misses, crashes, theme, at: new Date().toISOString() };
+        } else {
+            const killed = Number(body.killed);
+            const valid = Number.isInteger(score) && score >= 0 && score <= MAX_SCORE && score % 100 === 0
+                && Number.isInteger(killed) && killed >= 0 && killed <= MAX_KILLS && score <= killed * 400 + BONUS_ALLOWANCE;
+            const stage = Number.isInteger(Number(body.stage)) ? Math.min(MAX_STAGE, Math.max(1, Number(body.stage))) : 1;
+            if (!valid) return json({ error: 'nice try' }, headers, 400);
+            entry = { name, score, killed, stage, won: body.won === true && stage === MAX_STAGE, theme, at: new Date().toISOString() };
+        }
 
-        const entry = {
-            name,
-            score,
-            killed,
-            stage,
-            won: body.won === true && stage === MAX_STAGE,
-            theme: ['paper', 'hearth', 'cyber'].includes(body.theme) ? body.theme : 'paper',
-            at: new Date().toISOString(),
-        };
-
-        const top = await readTop(env);
+        const top = await readTop(env, game);
         top.push(entry);
-        sortScores(top);
+        sortScores(top, game);
         const kept = top.slice(0, KEEP);
-        await env.SCORES.put('top', JSON.stringify(kept));
+        await env.SCORES.put(GAMES[game].key, JSON.stringify(kept));
         const rank = kept.indexOf(entry) + 1;
-        return json({ ok: true, rank: rank || null, scores: kept.slice(0, 10) }, headers);
+        return json({ ok: true, game, rank: rank || null, scores: kept.slice(0, 10) }, headers);
     },
 };

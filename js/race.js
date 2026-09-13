@@ -31,6 +31,169 @@
     };
 
     let G = null;
+    const SCORE_API = ((document.querySelector('meta[name="score-api"]') || {}).content || '').trim();
+    const MAX_NAME = 12;
+
+    function sortScores(list) {
+        return list.sort((a, b) => b.score - a.score || (b.speed || 0) - (a.speed || 0) || String(a.at).localeCompare(String(b.at)));
+    }
+
+    function loadLocalScores() {
+        try {
+            const list = JSON.parse(localStorage.getItem('lh-eleanor-scores') || '[]');
+            return Array.isArray(list) ? list : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function saveLocalScores(list) {
+        try {
+            localStorage.setItem('lh-eleanor-scores', JSON.stringify(list.slice(0, 50)));
+        } catch (err) {}
+    }
+
+    function apiUrl() {
+        return SCORE_API + (SCORE_API.includes('?') ? '&' : '?') + 'game=eleanor';
+    }
+
+    async function fetchScores() {
+        const local = sortScores(loadLocalScores()).slice(0, 10);
+        if (!SCORE_API) return { scores: local, local: true };
+        try {
+            const res = await fetch(apiUrl(), { method: 'GET', mode: 'cors', cache: 'no-store' });
+            if (!res.ok) throw new Error(String(res.status));
+            const data = await res.json();
+            return { scores: (data.scores || []).slice(0, 10), local: false };
+        } catch (err) {
+            return { scores: local, local: true, offline: true };
+        }
+    }
+
+    async function submitScore(entry) {
+        const local = loadLocalScores();
+        local.push(entry);
+        sortScores(local);
+        saveLocalScores(local);
+        const localResult = { scores: local.slice(0, 10), rank: local.indexOf(entry) + 1, local: true };
+        if (!SCORE_API) return localResult;
+        try {
+            const res = await fetch(SCORE_API, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ game: 'eleanor' }, entry)) });
+            if (!res.ok) throw new Error(String(res.status));
+            const data = await res.json();
+            return { scores: (data.scores || []).slice(0, 10), rank: data.rank || null, local: false };
+        } catch (err) {
+            return Object.assign(localResult, { offline: true });
+        }
+    }
+
+    function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    function clearPanel() {
+        if (!G || !G.panel) return;
+        G.panel.replaceChildren();
+        G.panel.hidden = true;
+        G.panelMode = null;
+    }
+
+    function themeName() {
+        const name = document.documentElement.getAttribute('data-theme');
+        return name === 'hearth' || name === 'cyber' ? name : 'paper';
+    }
+
+    function showNameForm() {
+        const panel = G.panel;
+        panel.replaceChildren();
+        G.panelMode = 'name';
+        panel.appendChild(el('h2', 'battle-title', "TIME'S UP"));
+        panel.appendChild(el('p', 'battle-sub', `${Math.floor(G.distance).toLocaleString('en-US')} m   ${Math.round(G.topSpeed * KMH_PER_UNIT)} km/h   ${G.jumps} jump${G.jumps === 1 ? '' : 's'}`));
+        const form = el('form', 'battle-form');
+        const labelEl = el('label', 'battle-label', 'ENTER YOUR NAME');
+        labelEl.htmlFor = 'eleanor-name';
+        const input = el('input', 'battle-input');
+        input.id = 'eleanor-name';
+        input.type = 'text';
+        input.maxLength = MAX_NAME;
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        try {
+            input.value = localStorage.getItem('lh-player') || '';
+        } catch (err) {
+            input.value = '';
+        }
+        const save = el('button', 'battle-button', 'SAVE');
+        save.type = 'submit';
+        const skip = el('button', 'battle-button battle-button-ghost', 'SKIP');
+        skip.type = 'button';
+        skip.addEventListener('click', () => skipName());
+        form.append(labelEl, input, save, skip);
+        panel.appendChild(form);
+        panel.appendChild(el('p', 'battle-hint', G.touch ? 'save your run or skip' : 'ENTER to save   ESC to skip'));
+        panel.hidden = false;
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            const name = input.value.replace(/[^\p{L}\p{N} _.'-]/gu, '').trim().slice(0, MAX_NAME) || 'anon';
+            try {
+                localStorage.setItem('lh-player', name);
+            } catch (err) {}
+            const entry = { name, score: Math.floor(G.distance), speed: Math.round(G.topSpeed * KMH_PER_UNIT), jumps: G.jumps, misses: G.nearMisses, crashes: G.crashes, theme: themeName(), at: new Date().toISOString() };
+            G.panelMode = 'busy';
+            submitScore(entry).then(result => {
+                if (G) showBoard(result, entry);
+            });
+        });
+        setTimeout(() => input.focus(), 50);
+    }
+
+    function skipName() {
+        if (!G || G.panelMode !== 'name') return;
+        G.panelMode = 'busy';
+        fetchScores().then(result => {
+            if (G) showBoard(result, null);
+        });
+    }
+
+    function showBoard(result, mine) {
+        const panel = G.panel;
+        panel.replaceChildren();
+        G.panelMode = 'board';
+        panel.appendChild(el('h2', 'battle-title', 'ELEANOR'));
+        const scope = result.local ? (result.offline ? 'scoreboard offline, saved in this browser' : 'scoreboard for this browser') : 'top 10 worldwide, sixty seconds each';
+        panel.appendChild(el('p', 'battle-sub', scope));
+        const list = el('ol', 'battle-scores');
+        if (!result.scores.length) list.appendChild(el('li', 'battle-empty', 'no runs yet. be the first.'));
+        result.scores.forEach((row, index) => {
+            const item = el('li', 'battle-row');
+            const isMine = !!mine && ((result.rank && index === result.rank - 1) || (!result.rank && row.name === mine.name && row.score === mine.score));
+            if (isMine) item.classList.add('is-mine');
+            item.append(
+                el('span', 'battle-rank', String(index + 1).padStart(2, '0')),
+                el('span', 'battle-name', row.name),
+                el('span', 'battle-score', `${Number(row.score).toLocaleString('en-US')} m`),
+                el('span', 'battle-kills', `${row.speed || 0} km/h \u00B7 ${row.jumps || 0} jump${row.jumps === 1 ? '' : 's'}`)
+            );
+            list.appendChild(item);
+        });
+        panel.appendChild(list);
+        if (mine && result.rank && result.rank > 10) panel.appendChild(el('p', 'battle-sub', `you are #${result.rank}`));
+        const actions = el('div', 'battle-actions');
+        const again = el('button', 'battle-button', 'DRIVE AGAIN');
+        again.type = 'button';
+        again.addEventListener('click', () => restart());
+        const leave = el('button', 'battle-button battle-button-ghost', 'BACK TO THE SITE');
+        leave.type = 'button';
+        leave.addEventListener('click', () => stop());
+        actions.append(again, leave);
+        panel.appendChild(actions);
+        if (!G.touch) panel.appendChild(el('p', 'battle-hint', 'R drive again   ESC back to the site'));
+        panel.hidden = false;
+    }
+
     const audio = { ctx: null, master: null, filter: null, muted: false, timer: 0, nextNote: 0, step: 0, engine: null, engineGain: null };
 
     function rand(seed) {
@@ -321,6 +484,137 @@
         ctx.restore();
     }
 
+    const CAR_MESH = (() => {
+        const faces = [];
+        const lower = [[-2.3, 0.32], [-2.3, 0.78], [-1.95, 0.9], [0.95, 0.9], [2.05, 0.82], [2.3, 0.68], [2.3, 0.32]];
+        const upper = [[-1.9, 0.9], [-1.55, 0.98], [-0.85, 1.28], [0.15, 1.32], [0.95, 1.02], [1.05, 0.9]];
+        const upperTags = ['glass', 'glass', 'body', 'glass', 'body'];
+        const push = (points, tag, center) => {
+            const [a, b, c] = points;
+            const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+            const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+            const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+            const cx = points.reduce((sum, q) => sum + q[0], 0) / points.length - center[0];
+            const cy = points.reduce((sum, q) => sum + q[1], 0) / points.length - center[1];
+            const cz = points.reduce((sum, q) => sum + q[2], 0) / points.length - center[2];
+            const outward = n[0] * cx + n[1] * cy + n[2] * cz;
+            faces.push({ points: outward < 0 ? points.slice().reverse() : points, tag });
+        };
+        const loft = (profile, halfWidth, tags, center, sideTag) => {
+            const left = profile.map(([z, y]) => [-halfWidth, y, z]);
+            const right = profile.map(([z, y]) => [halfWidth, y, z]);
+            push(left, sideTag, center);
+            push(right, sideTag, center);
+            for (let i = 0; i < profile.length - 1; i++) {
+                push([left[i], left[i + 1], right[i + 1], right[i]], tags ? tags[i] : 'body', center);
+            }
+            push([left[0], right[0], right[profile.length - 1], left[profile.length - 1]], 'bottom', center);
+        };
+        loft(lower, 0.95, null, [0, 0.6, 0], 'body');
+        loft(upper, 0.72, upperTags, [0, 1.0, -0.4], 'glass');
+        const wheel = (x, z) => {
+            const r = 0.34;
+            const half = 0.14;
+            const y0 = 0.34;
+            const sides = 8;
+            const outer = [];
+            const inner = [];
+            for (let i = 0; i < sides; i++) {
+                const a = (i / sides) * Math.PI * 2;
+                outer.push([x + Math.sign(x) * half, y0 + Math.sin(a) * r, z + Math.cos(a) * r]);
+                inner.push([x - Math.sign(x) * half, y0 + Math.sin(a) * r, z + Math.cos(a) * r]);
+            }
+            const center = [x, y0, z];
+            push(outer, 'tyre', center);
+            push(inner, 'tyre', center);
+            for (let i = 0; i < sides; i++) push([outer[i], outer[(i + 1) % sides], inner[(i + 1) % sides], inner[i]], 'tread', center);
+        };
+        wheel(-0.86, -1.45);
+        wheel(0.86, -1.45);
+        wheel(-0.86, 1.45);
+        wheel(0.86, 1.45);
+        const top = [[-2.3, 0.78], [-1.95, 0.9], [-1.9, 0.9], [-1.55, 0.98], [-0.85, 1.28], [0.15, 1.32], [0.95, 1.02], [1.05, 0.9], [2.05, 0.82], [2.3, 0.68]];
+        const decals = [];
+        const glassSpans = new Set([2, 3, 5]);
+        for (let i = 0; i < top.length - 1; i++) {
+            if (glassSpans.has(i)) continue;
+            const [z1, y1] = top[i];
+            const [z2, y2] = top[i + 1];
+            for (const sign of [-1, 1]) {
+                decals.push({ points: [[sign * 0.1, y1 + 0.012, z1], [sign * 0.24, y1 + 0.012, z1], [sign * 0.24, y2 + 0.012, z2], [sign * 0.1, y2 + 0.012, z2]], tag: 'stripe' });
+            }
+        }
+        for (const sign of [-1, 1]) {
+            for (let i = 0; i < 3; i++) {
+                const x0 = sign * (0.42 + i * 0.13);
+                decals.push({ points: [[x0, 0.62, -2.31], [x0 + sign * 0.09, 0.62, -2.31], [x0 + sign * 0.09, 0.5, -2.31], [x0, 0.5, -2.31]], tag: 'light' });
+            }
+            decals.push({ points: [[sign * 0.32, 0.4, -2.31], [sign * 0.42, 0.4, -2.31], [sign * 0.42, 0.34, -2.31], [sign * 0.32, 0.34, -2.31]], tag: 'exhaust' });
+        }
+        return { faces, decals };
+    })();
+
+    const CAR_COLORS = { body: [168, 168, 168], glass: [70, 70, 70], bottom: [30, 30, 30], tyre: [24, 24, 24], tread: [40, 40, 40], stripe: [20, 20, 20], light: [244, 244, 244], exhaust: [90, 90, 90] };
+
+    function drawCar3D(ctx, cx, cy, w, roll, yaw, pitch) {
+        const cam = [0, 1.55, -6.6];
+        const target = [0, 0.72, 0.5];
+        const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+        const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+        const forward = norm([target[0] - cam[0], target[1] - cam[1], target[2] - cam[2]]);
+        const right = norm(cross([0, 1, 0], forward));
+        const up = cross(forward, right);
+        const focal = w * 4.4 / 1.9;
+        const sr = Math.sin(roll), cr = Math.cos(roll);
+        const sy = Math.sin(yaw), cyw = Math.cos(yaw);
+        const sp = Math.sin(pitch), cp = Math.cos(pitch);
+        const light = norm([-0.35, 1, -0.6]);
+        const transform = p => {
+            let [x, y, z] = p;
+            let x1 = x * cr - y * sr;
+            let y1 = x * sr + y * cr;
+            let y2 = y1 * cp - z * sp;
+            let z2 = y1 * sp + z * cp;
+            let x3 = x1 * cyw + z2 * sy;
+            let z3 = -x1 * sy + z2 * cyw;
+            const d = [x3 - cam[0], y2 - cam[1], z3 - cam[2]];
+            return [d[0] * right[0] + d[1] * right[1] + d[2] * right[2], d[0] * up[0] + d[1] * up[1] + d[2] * up[2], d[0] * forward[0] + d[1] * forward[1] + d[2] * forward[2]];
+        };
+        const anchor = transform([0, 0.3, -2.3]);
+        const ax = focal * anchor[0] / anchor[2];
+        const ay = -focal * anchor[1] / anchor[2];
+        const project = v => [cx + focal * v[0] / v[2] - ax, cy - focal * v[1] / v[2] - ay];
+        const drawFace = (face, cull) => {
+            const pts = face.points.map(transform);
+            const a = pts[0], b = pts[1], c = pts[2];
+            const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+            const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+            const n = norm(cross(u, v));
+            const centroid = pts.reduce((acc, q) => [acc[0] + q[0] / pts.length, acc[1] + q[1] / pts.length, acc[2] + q[2] / pts.length], [0, 0, 0]);
+            if (cull && (n[0] * centroid[0] + n[1] * centroid[1] + n[2] * centroid[2]) > 0) return null;
+            const lightCam = [light[0] * right[0] + light[1] * right[1] + light[2] * right[2], light[0] * up[0] + light[1] * up[1] + light[2] * up[2], light[0] * forward[0] + light[1] * forward[1] + light[2] * forward[2]];
+            const shade = 0.55 + 0.45 * Math.max(0, -(n[0] * lightCam[0] + n[1] * lightCam[1] + n[2] * lightCam[2]));
+            return { depth: centroid[2], screen: pts.map(project), shade, tag: face.tag };
+        };
+        const drawn = CAR_MESH.faces.map(f => drawFace(f, true)).filter(Boolean).sort((p, q) => q.depth - p.depth);
+        const paint = item => {
+            const base = CAR_COLORS[item.tag] || CAR_COLORS.body;
+            const s = item.tag === 'light' || item.tag === 'stripe' ? 1 : item.shade;
+            ctx.fillStyle = `rgb(${Math.round(base[0] * s)}, ${Math.round(base[1] * s)}, ${Math.round(base[2] * s)})`;
+            ctx.beginPath();
+            item.screen.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+            ctx.closePath();
+            ctx.fill();
+            if (item.tag === 'glass') {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        };
+        drawn.forEach(paint);
+        CAR_MESH.decals.map(f => drawFace(f, false)).filter(Boolean).forEach(paint);
+    }
+
     function drawSky(ctx) {
         const grad = ctx.createLinearGradient(0, 0, 0, G.H * 0.7);
         grad.addColorStop(0, PAL.skyTop);
@@ -413,7 +707,10 @@
             ctx.ellipse(G.W / 2, G.H * 0.9, carW * 0.45 * (1 - G.air.y * 0.2), carW * 0.08, 0, 0, Math.PI * 2);
             ctx.fill();
         }
-        drawCarSprite(ctx, G.W / 2 + G.steerTilt * 6, G.H * 0.9 + bounce - lift, carW * (1 + G.air.y * 0.25), 0, G.spin, true);
+        const roll = -G.steerSmooth * 0.09 + G.spin * 0.15;
+        const yaw = G.steerSmooth * 0.14 + G.spin * 1.4;
+        const pitch = G.air.y > 0 ? clamp(-G.air.vy * 0.22, -0.3, 0.3) : (G.throttle ? -0.02 : 0);
+        drawCar3D(ctx, G.W / 2 + G.steerTilt * 6, G.H * 0.93 + bounce - lift, carW * (1 + G.air.y * 0.25), roll, yaw, pitch);
 
         for (const p of G.particles) {
             ctx.globalAlpha = Math.max(0, 1 - p.t / p.life);
@@ -460,20 +757,21 @@
             label(ctx, n > 0 ? String(n) : 'GO', G.W / 2, G.H * 0.36, 'center', 72);
             label(ctx, 'ELEANOR', G.W / 2, G.H * 0.36 + 84, 'center', 14, 'rgba(242, 242, 242, 0.8)');
             label(ctx, G.touch ? 'HOLD TO DRIVE. SLIDE TO STEER.' : 'HOLD SPACE OR UP TO DRIVE. LEFT AND RIGHT TO STEER.', G.W / 2, G.H * 0.36 + 106, 'center', 12, 'rgba(242, 242, 242, 0.8)');
+            if (G.worldBest) label(ctx, `WORLD BEST ${G.worldBest.name} ${Number(G.worldBest.score).toLocaleString('en-US')} M`, G.W / 2, G.H * 0.36 + 130, 'center', 12, 'rgba(242, 242, 242, 0.7)');
         }
         for (const t of G.texts) {
             ctx.globalAlpha = Math.max(0, 1 - t.t / t.life);
             label(ctx, t.text, G.W / 2, G.H * 0.62 - t.t * 40, 'center', 22);
             ctx.globalAlpha = 1;
         }
-        if (G.phase === 'over') {
+        if (G.phase === 'over' && !G.panelMode) {
             ctx.fillStyle = 'rgba(17, 17, 17, 0.78)';
             ctx.fillRect(0, G.H / 2 - 110, G.W, 220);
             label(ctx, "TIME'S UP", G.W / 2, G.H / 2 - 92, 'center', 34);
             label(ctx, `ELEANOR COVERED ${Math.floor(G.distance).toLocaleString('en-US')} M`, G.W / 2, G.H / 2 - 40, 'center', 18);
             label(ctx, `TOP SPEED ${Math.round(G.topSpeed * KMH_PER_UNIT)} KM/H   ${G.jumps} JUMP${G.jumps === 1 ? '' : 'S'}   ${G.nearMisses} CLOSE CALL${G.nearMisses === 1 ? '' : 'S'}   ${G.crashes} CRASH${G.crashes === 1 ? '' : 'ES'}`, G.W / 2, G.H / 2 - 8, 'center', 12, 'rgba(242, 242, 242, 0.85)');
             if (G.newBest) label(ctx, 'NEW PERSONAL BEST', G.W / 2, G.H / 2 + 22, 'center', 14);
-            label(ctx, G.touch ? 'TAP TO DRIVE AGAIN' : 'R DRIVE AGAIN   ESC BACK TO THE SITE', G.W / 2, G.H / 2 + 62, 'center', 12, 'rgba(242, 242, 242, 0.8)');
+            label(ctx, 'RESULTS COMING UP', G.W / 2, G.H / 2 + 62, 'center', 12, 'rgba(242, 242, 242, 0.8)');
         }
         if (G.paused) {
             ctx.fillStyle = 'rgba(17, 17, 17, 0.6)';
@@ -498,6 +796,16 @@
             if (G.countdown <= -0.6) G.phase = 'play';
         }
         if (G.paused) return;
+        if (G.phase === 'over') {
+            G.overAt += dt;
+            if (G.overAt > 1.2 && !G.ended) {
+                G.ended = true;
+                if (G.distance >= 1) showNameForm();
+                else fetchScores().then(result => {
+                    if (G) showBoard(result, null);
+                });
+            }
+        }
         const playing = G.phase === 'play';
         if (playing) {
             G.clock -= dt;
@@ -621,6 +929,7 @@
 
     function finish() {
         G.phase = 'over';
+        G.overAt = 0;
         G.throttle = false;
         G.newBest = G.distance > G.best;
         if (G.newBest) {
@@ -819,6 +1128,23 @@
     function onKeyDown(event) {
         if (!G) return;
         const key = event.key;
+        if (G.panelMode === 'name' || G.panelMode === 'busy') {
+            if (key === 'Escape') {
+                event.preventDefault();
+                skipName();
+            }
+            return;
+        }
+        if (G.panelMode === 'board') {
+            if (key === 'Escape') {
+                event.preventDefault();
+                stop();
+            } else if (key === 'r' || key === 'R') {
+                event.preventDefault();
+                restart();
+            }
+            return;
+        }
         if (key === 'Escape') {
             event.preventDefault();
             stop();
@@ -849,11 +1175,8 @@
     }
 
     function onPointerDown(event) {
-        if (!G) return;
-        if (G.phase === 'over') {
-            restart();
-            return;
-        }
+        if (!G || G.panelMode) return;
+        if (G.phase === 'over') return;
         event.preventDefault();
         G.pointer.active = true;
         G.pointer.id = event.pointerId;
@@ -931,6 +1254,9 @@
         G.brake = false;
         G.keys = {};
         G.pointer = { active: false, id: null, startX: 0, steer: 0 };
+        G.overAt = 0;
+        G.ended = false;
+        clearPanel();
         startMusic();
     }
 
@@ -947,6 +1273,8 @@
         if (W < 280 || H < 300) return false;
         const wrap = document.createElement('div');
         wrap.className = 'eleanor';
+        const panel = el('div', 'battle-panel');
+        panel.hidden = true;
         const canvas = document.createElement('canvas');
         const dpr = Math.min(1.5, window.devicePixelRatio || 1);
         canvas.width = Math.floor(W * dpr);
@@ -954,6 +1282,7 @@
         canvas.style.width = W + 'px';
         canvas.style.height = H + 'px';
         wrap.appendChild(canvas);
+        wrap.appendChild(panel);
         document.body.appendChild(wrap);
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
@@ -963,7 +1292,7 @@
         } catch (err) {
             best = 0;
         }
-        G = { W, H, canvas, ctx, wrap, touch, best, mono: (getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || 'monospace').trim(), cameraDepth: 1 / Math.tan((FOV / 2) * Math.PI / 180), playerZ: CAMERA_HEIGHT / (1 / Math.tan((FOV / 2) * Math.PI / 180)), last: performance.now(), raf: 0 };
+        G = { W, H, canvas, ctx, wrap, panel, panelMode: null, worldBest: null, touch, best, mono: (getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || 'monospace').trim(), cameraDepth: 1 / Math.tan((FOV / 2) * Math.PI / 180), playerZ: CAMERA_HEIGHT / (1 / Math.tan((FOV / 2) * Math.PI / 180)), last: performance.now(), raf: 0 };
         G.prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         document.documentElement.classList.add('race');
@@ -1013,6 +1342,9 @@
         }
         ensureAudio();
         newRound();
+        fetchScores().then(result => {
+            if (G && result.scores.length && !result.local) G.worldBest = result.scores[0];
+        });
         G.raf = requestAnimationFrame(frame);
         return true;
     }

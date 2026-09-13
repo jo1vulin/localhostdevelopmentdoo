@@ -2,8 +2,8 @@
 
 The site keeps scores in the visitor's browser until `<meta name="score-api">` in `index.html` points at an endpoint. The endpoint contract is tiny:
 
-- `GET  <url>` returns `{ "scores": [ { name, score, killed, won, theme, at }, ... ] }` (top 10)
-- `POST <url>` with a JSON body `{ name, score, killed, won, theme, at }` returns `{ ok, rank, scores }`
+- `GET  <url>?game=battle|eleanor` returns `{ "game", "scores": [ ... ] }` (top 10; `battle` is the default)
+- `POST <url>` with a JSON body `{ game, name, score, ... }` returns `{ ok, game, rank, scores }`. Battle City entries carry `killed`, `stage`, `won`; Eleanor entries carry `speed`, `jumps`, `misses`, `crashes`.
 
 The body is sent as `text/plain` so the browser does not preflight. Both implementations below validate: name at most 12 characters, score a multiple of 100 up to 120000 and never more than 400 per tank plus a 6000 allowance for bonuses, at most 220 tanks (11 stages), stage 1 to 11.
 

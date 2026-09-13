@@ -370,7 +370,7 @@ function initTerminal() {
             '  theme <name>      paper, hearth or cyber (or just press t)',
             '  battlecity        the page becomes the map. 20 enemy tanks. good luck.',
             '  gonein60seconds   Eleanor. Sixty seconds of grey city. Hold to drive.',
-            '  scores            the Battle City scoreboard',
+            '  scores            the Battle City scoreboard (scores eleanor for the drive)',
             '  ls, cat, pwd      the usual',
             '  clear, exit       tidy up, close',
         ]),
@@ -465,18 +465,19 @@ function initTerminal() {
             if (setTheme(want)) return print(`Theme: ${want}.`);
             print(`theme: unknown theme: ${want}. Try ${THEMES.join(', ')}.`);
         },
-        scores: async () => {
+        scores: async args => {
             const api = ((document.querySelector('meta[name="score-api"]') || {}).content || '').trim();
+            const eleanor = /^(eleanor|race|gonein60seconds)$/i.test(args[0] || '');
             let scores = [];
             let scope = 'this browser';
             try {
-                scores = JSON.parse(localStorage.getItem('lh-scores') || '[]');
+                scores = JSON.parse(localStorage.getItem(eleanor ? 'lh-eleanor-scores' : 'lh-scores') || '[]');
             } catch (err) {
                 scores = [];
             }
             if (api) {
                 try {
-                    const res = await fetch(api, { cache: 'no-store' });
+                    const res = await fetch(api + (eleanor ? (api.includes('?') ? '&' : '?') + 'game=eleanor' : ''), { cache: 'no-store' });
                     const data = await res.json();
                     scores = data.scores || [];
                     scope = 'worldwide';
@@ -484,10 +485,13 @@ function initTerminal() {
                     scope = 'this browser (scoreboard offline)';
                 }
             }
-            scores = scores.slice().sort((a, b) => b.score - a.score || b.killed - a.killed).slice(0, 10);
-            if (!scores.length) return print('No scores yet. Type battlecity and change that.');
-            print(`Battle City top ${scores.length}, ${scope}:`);
-            scores.forEach((row, i) => print(`  ${String(i + 1).padStart(2, '0')}  ${String(row.name).padEnd(13)} ${String(row.score).padStart(5)}  ${row.killed} tanks${row.won ? ' (cleared)' : ''}`));
+            scores = scores.slice().sort((a, b) => b.score - a.score).slice(0, 10);
+            if (!scores.length) return print(eleanor ? 'No runs yet. Type gonein60seconds and change that.' : 'No scores yet. Type battlecity and change that.');
+            print(`${eleanor ? 'Eleanor' : 'Battle City'} top ${scores.length}, ${scope}:`);
+            scores.forEach((row, i) => print(eleanor
+                ? `  ${String(i + 1).padStart(2, '0')}  ${String(row.name).padEnd(13)} ${String(row.score).padStart(5)} m  ${row.speed || 0} km/h, ${row.jumps || 0} jumps`
+                : `  ${String(i + 1).padStart(2, '0')}  ${String(row.name).padEnd(13)} ${String(row.score).padStart(6)}  stage ${row.stage || 1}, ${row.killed} tanks${row.won ? ' (cleared)' : ''}`));
+            if (!eleanor) print('  scores eleanor for the other board', 'dim');
         },
         battlecity: () => {
             print('Loading. Arrows or WASD to move, space to fire, Esc to come back.');
