@@ -1948,7 +1948,7 @@ html.flipping body {
     left: 0;
     right: 0;
     bottom: 0;
-    height: var(--strip, 136px);
+    height: var(--strip, 152px);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1959,8 +1959,8 @@ html.flipping body {
 
 .battle-pad {
     display: grid;
-    grid-template-columns: repeat(3, 46px);
-    grid-template-rows: repeat(3, 46px);
+    grid-template-columns: repeat(3, 52px);
+    grid-template-rows: repeat(3, 52px);
     gap: 3px;
     touch-action: none;
 }
@@ -2016,8 +2016,8 @@ html.flipping body {
 }
 
 .battle-fire {
-    width: 84px;
-    height: 84px;
+    width: 92px;
+    height: 92px;
     border-radius: 50%;
     border: 0;
     font: 700 13px var(--font-mono);

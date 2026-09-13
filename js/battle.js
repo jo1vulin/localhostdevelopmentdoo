@@ -1071,7 +1071,7 @@
     function start() {
         if (G) return true;
         const touch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
-        const strip = touch ? (window.innerHeight > 520 ? 136 : 100) : 0;
+        const strip = touch ? (window.innerHeight > 560 ? 152 : 104) : 0;
         const W = Math.floor(window.innerWidth / TILE) * TILE;
         const H = Math.floor((window.innerHeight - strip) / TILE) * TILE;
         const cols = W / TILE;

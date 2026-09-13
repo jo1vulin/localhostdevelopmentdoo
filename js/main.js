@@ -32,7 +32,8 @@ function launchBattleCity() {
     const existing = document.querySelector('script[data-battle]');
     if (existing) return true;
     const script = document.createElement('script');
-    script.src = 'js/battle.js';
+    const version = ((document.querySelector('meta[name="asset-version"]') || {}).content || '').trim();
+    script.src = 'js/battle.js' + (version ? '?v=' + version : '');
     script.setAttribute('data-battle', '');
     script.addEventListener('load', run);
     document.body.appendChild(script);
