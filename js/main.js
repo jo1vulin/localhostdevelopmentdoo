@@ -564,6 +564,9 @@ function initTerminal() {
         input.focus();
     });
 
+    const closeButton = document.getElementById('terminal-close');
+    if (closeButton) closeButton.addEventListener('click', close);
+
     const footerSeal = document.querySelector('.footer-seal');
     if (footerSeal) footerSeal.addEventListener('click', () => (isOpen() ? close() : open()));
 }

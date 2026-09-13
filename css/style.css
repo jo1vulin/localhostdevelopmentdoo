@@ -1020,6 +1020,27 @@ ul {
     text-transform: uppercase;
 }
 
+.terminal-hint {
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+.terminal-hint::before {
+    content: "esc or ";
+}
+
+@media (max-width: 720px) {
+    .terminal-hint::before {
+        content: "tap to ";
+    }
+}
+
 .terminal-output {
     flex: 1;
     overflow-y: auto;
@@ -1201,6 +1222,34 @@ ul {
 
     .principles {
         grid-template-columns: 1fr;
+    }
+
+    .terminal {
+        top: 0;
+        bottom: auto;
+        height: min(58vh, 440px);
+        border-top: 0;
+        border-bottom: 1px solid rgba(var(--on-dark-rgb), 0.18);
+        box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+        transform: translateY(-100%);
+    }
+
+    .terminal.is-open {
+        transform: none;
+    }
+
+    .terminal-bar {
+        order: 0;
+    }
+
+    .terminal-form {
+        order: 1;
+        border-top: 0;
+        border-bottom: 1px solid rgba(var(--on-dark-rgb), 0.12);
+    }
+
+    .terminal-output {
+        order: 2;
     }
 }
 
