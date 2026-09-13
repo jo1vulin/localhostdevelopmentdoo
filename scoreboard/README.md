@@ -5,7 +5,7 @@ The site keeps scores in the visitor's browser until `<meta name="score-api">` i
 - `GET  <url>` returns `{ "scores": [ { name, score, killed, won, theme, at }, ... ] }` (top 10)
 - `POST <url>` with a JSON body `{ name, score, killed, won, theme, at }` returns `{ ok, rank, scores }`
 
-The body is sent as `text/plain` so the browser does not preflight. Both implementations below validate: name at most 12 characters, score a multiple of 100 up to 8000 and never more than 400 per tank, at most 20 tanks.
+The body is sent as `text/plain` so the browser does not preflight. Both implementations below validate: name at most 12 characters, score a multiple of 100 up to 120000 and never more than 400 per tank plus a 6000 allowance for bonuses, at most 220 tanks (11 stages), stage 1 to 11.
 
 ## Current setup
 

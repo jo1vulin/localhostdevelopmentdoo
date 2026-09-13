@@ -1,7 +1,9 @@
 const ALLOWED_ORIGINS = ['https://localhostdevelopmentdoo.com', 'https://www.localhostdevelopmentdoo.com', 'http://127.0.0.1:8123', 'http://localhost:8123'];
 const MAX_NAME = 12;
-const MAX_SCORE = 8000;
-const MAX_KILLS = 20;
+const MAX_SCORE = 120000;
+const MAX_KILLS = 220;
+const MAX_STAGE = 11;
+const BONUS_ALLOWANCE = 6000;
 const KEEP = 100;
 const RATE_LIMIT = 12;
 const RATE_WINDOW = 600;
@@ -64,14 +66,16 @@ export default {
         const score = Number(body.score);
         const killed = Number(body.killed);
         const valid = Number.isInteger(score) && score >= 0 && score <= MAX_SCORE && score % 100 === 0
-            && Number.isInteger(killed) && killed >= 0 && killed <= MAX_KILLS && score <= killed * 400;
+            && Number.isInteger(killed) && killed >= 0 && killed <= MAX_KILLS && score <= killed * 400 + BONUS_ALLOWANCE;
+        const stage = Number.isInteger(Number(body.stage)) ? Math.min(MAX_STAGE, Math.max(1, Number(body.stage))) : 1;
         if (!valid) return json({ error: 'nice try' }, headers, 400);
 
         const entry = {
             name,
             score,
             killed,
-            won: body.won === true && killed === MAX_KILLS,
+            stage,
+            won: body.won === true && stage === MAX_STAGE,
             theme: ['paper', 'hearth', 'cyber'].includes(body.theme) ? body.theme : 'paper',
             at: new Date().toISOString(),
         };

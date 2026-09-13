@@ -9,6 +9,9 @@
     const STEEL = 2;
     const BASE = 3;
     const TOTAL_ENEMIES = 20;
+    const MAX_STAGE = 11;
+    const BONUS_KINDS = ['helmet', 'star', 'shovel', 'timer', 'grenade', 'tank'];
+    const BONUS_SCORE = 500;
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     const ROT = { up: 0, right: Math.PI / 2, down: Math.PI, left: -Math.PI / 2 };
     const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
@@ -24,7 +27,7 @@
     const audio = { ctx: null, muted: false, noise: null };
     const SCORE_API = ((document.querySelector('meta[name="score-api"]') || {}).content || '').trim();
     const MAX_NAME = 12;
-    const MAX_SCORE = 8000;
+    const MAX_SCORE = 120000;
 
     function sortScores(list) {
         return list.sort((a, b) => b.score - a.score || b.killed - a.killed || String(a.at).localeCompare(String(b.at)));
@@ -101,7 +104,7 @@
         panel.replaceChildren();
         G.panelMode = 'name';
         panel.appendChild(el('h2', 'battle-title', G.won ? 'STAGE CLEAR' : 'GAME OVER'));
-        panel.appendChild(el('p', 'battle-sub', `score ${G.score}   ${G.killed} tank${G.killed === 1 ? '' : 's'}`));
+        panel.appendChild(el('p', 'battle-sub', `score ${G.score}   stage ${G.stage}   ${G.killedTotal} tank${G.killedTotal === 1 ? '' : 's'}`));
         const form = el('form', 'battle-form');
         const label = el('label', 'battle-label', 'ENTER YOUR NAME');
         label.htmlFor = 'battle-name';
@@ -131,7 +134,7 @@
             try {
                 localStorage.setItem('lh-player', name);
             } catch (err) {}
-            const entry = { name, score: G.score, killed: G.killed, won: G.won, theme: currentTheme(), at: new Date().toISOString() };
+            const entry = { name, score: G.score, killed: G.killedTotal, stage: G.stage, won: G.won, theme: currentTheme(), at: new Date().toISOString() };
             G.panelMode = 'busy';
             submitScore(entry).then(result => {
                 if (!G) return;
@@ -166,7 +169,7 @@
                 el('span', 'battle-rank', String(index + 1).padStart(2, '0')),
                 el('span', 'battle-name', row.name),
                 el('span', 'battle-score', String(row.score)),
-                el('span', 'battle-kills', `${row.killed} tank${row.killed === 1 ? '' : 's'}${row.won ? ' \u2713' : ''}`)
+                el('span', 'battle-kills', `st ${row.stage || 1} \u00B7 ${row.killed} tank${row.killed === 1 ? '' : 's'}${row.won ? ' \u2713' : ''}`)
             );
             list.appendChild(item);
         });
@@ -296,23 +299,51 @@
         };
     }
 
-    function enemyQueue() {
+    function enemyQueue(stage) {
+        const fast = Math.min(8, 3 + stage);
+        const power = Math.min(7, 1 + Math.floor((stage - 1) * 0.7));
+        const armor = Math.min(8, Math.floor((stage - 1) * 0.8));
+        const basic = Math.max(0, TOTAL_ENEMIES - 2 - fast - power - armor);
         const pool = [];
         const add = (type, n) => { for (let i = 0; i < n; i++) pool.push(type); };
-        add('basic', 5);
-        add('fast', 5);
-        add('power', 4);
-        add('armor', 3);
+        add('basic', basic);
+        add('fast', fast);
+        add('power', power);
+        add('armor', armor);
         for (let i = pool.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [pool[i], pool[j]] = [pool[j], pool[i]];
         }
-        return ['basic', 'basic', 'basic'].concat(pool);
+        const queue = ['basic', 'basic'].concat(pool).slice(0, G.total).map(type => ({ type, bonus: false }));
+        [3, 10, 17].forEach(i => { if (queue[i]) queue[i].bonus = true; });
+        return queue;
     }
 
-    function makeTank(type, x, y, dir) {
+    function stageSpeed(stage) {
+        return 1 + (stage - 1) * 0.04;
+    }
+
+    function playerStars() {
+        return Math.min(3, G.stars + Math.floor((G.stage - 1) / 3));
+    }
+
+    function applyPlayerSpec(tank) {
+        const stars = playerStars();
+        tank.speed = TYPES.player.speed + (G.stage - 1) * 4;
+        tank.bulletSpeed = TYPES.player.bullet * (stars >= 1 ? 1.5 : 1);
+        tank.maxBullets = stars >= 2 ? 2 : 1;
+        tank.power = stars >= 3;
+    }
+
+    function makeTank(type, x, y, dir, bonus) {
         const spec = TYPES[type];
-        return { type, x, y, dir, speed: spec.speed, hp: spec.hp, maxHp: spec.hp, bulletSpeed: spec.bullet, alive: true, bullet: null, acc: 0, anim: 0, shield: type === 'player' ? 3 : 0, think: 0, fire: 1 + Math.random(), blocked: 0, flash: 0 };
+        const tank = { type, x, y, dir, speed: spec.speed, hp: spec.hp, maxHp: spec.hp, bulletSpeed: spec.bullet, maxBullets: 1, power: false, alive: true, shots: 0, acc: 0, anim: 0, shield: type === 'player' ? 3 : 0, think: 0, fire: 1 + Math.random(), blocked: 0, flash: 0, bonus: !!bonus };
+        if (type === 'player') applyPlayerSpec(tank);
+        else {
+            tank.speed = spec.speed * stageSpeed(G.stage);
+            tank.bulletSpeed = spec.bullet * (1 + (G.stage - 1) * 0.03);
+        }
+        return tank;
     }
 
     function ensureAudio() {
@@ -338,6 +369,22 @@
         const now = ac.currentTime;
         const gain = ac.createGain();
         gain.connect(ac.destination);
+        if (kind === 'bonus') {
+            [660, 880, 1320].forEach((freq, i) => {
+                const osc = ac.createOscillator();
+                const g = ac.createGain();
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                g.gain.setValueAtTime(0.0001, now + i * 0.09);
+                g.gain.exponentialRampToValueAtTime(0.06, now + i * 0.09 + 0.01);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 0.12);
+                osc.connect(g);
+                g.connect(ac.destination);
+                osc.start(now + i * 0.09);
+                osc.stop(now + i * 0.09 + 0.13);
+            });
+            return;
+        }
         if (kind === 'shoot') {
             const osc = ac.createOscillator();
             osc.type = 'square';
@@ -427,12 +474,60 @@
     }
 
     function shoot(tank) {
-        if (tank.bullet || !tank.alive) return;
+        if (!tank.alive || tank.shots >= tank.maxBullets) return;
         const [dx, dy] = DIRS[tank.dir];
-        const bullet = { x: tank.x + TANK / 2 + dx * 14, y: tank.y + TANK / 2 + dy * 14, dir: tank.dir, speed: tank.bulletSpeed, owner: tank, alive: true, acc: 0 };
-        tank.bullet = bullet;
+        const bullet = { x: tank.x + TANK / 2 + dx * 14, y: tank.y + TANK / 2 + dy * 14, dir: tank.dir, speed: tank.bulletSpeed, owner: tank, power: !!tank.power, alive: true, acc: 0 };
+        tank.shots += 1;
         G.bullets.push(bullet);
         sound('shoot');
+    }
+
+    function dropBonus() {
+        const kind = BONUS_KINDS[Math.floor(Math.random() * BONUS_KINDS.length)];
+        for (let attempt = 0; attempt < 40; attempt++) {
+            const c = 1 + Math.floor(Math.random() * (G.cols - 3));
+            const r = 4 + Math.floor(Math.random() * (G.rows - 10));
+            const x = c * TILE;
+            const y = r * TILE;
+            if (Math.abs(x - G.base.x) < TANK * 2 && Math.abs(y - G.base.y) < TANK * 2) continue;
+            G.bonuses.push({ kind, x, y, t: 0, life: 15 });
+            return;
+        }
+    }
+
+    function baseRing() {
+        const tiles = [];
+        const bx = G.base.x / TILE;
+        const by = G.base.y / TILE;
+        for (let r = by - 1; r <= by + 1; r++) {
+            tiles.push([bx - 1, r]);
+            tiles.push([bx + 2, r]);
+        }
+        tiles.push([bx, by - 1]);
+        tiles.push([bx + 1, by - 1]);
+        return tiles.filter(([c, r]) => c >= 0 && r >= 0 && c < G.cols && r < G.rows);
+    }
+
+    function setRing(value) {
+        for (const [c, r] of baseRing()) G.grid[r * G.cols + c] = value;
+    }
+
+    function applyBonus(kind) {
+        const player = G.player;
+        G.score += BONUS_SCORE;
+        sound('bonus');
+        if (kind === 'helmet' && player) player.shield = 10;
+        else if (kind === 'star') {
+            G.stars = Math.min(3, G.stars + 1);
+            if (player) applyPlayerSpec(player);
+        } else if (kind === 'shovel') {
+            G.shovel = 20;
+            setRing(STEEL);
+        } else if (kind === 'timer') G.freeze = 8;
+        else if (kind === 'grenade') {
+            for (const tank of G.tanks) if (tank.alive && tank.type !== 'player') killTank(tank, true);
+        } else if (kind === 'tank') G.lives += 1;
+        G.effects.push({ kind: 'text', x: G.W / 2, y: G.H / 2, t: 0, life: 1.2, text: kind.toUpperCase() });
     }
 
     function explode(x, y, big) {
@@ -440,23 +535,26 @@
         sound(big ? 'bigboom' : 'boom');
     }
 
-    function killTank(tank) {
+    function killTank(tank, silent) {
         tank.alive = false;
-        if (tank.bullet) tank.bullet.owner = null;
+        for (const b of G.bullets) if (b.owner === tank) b.owner = null;
         explode(tank.x + TANK / 2, tank.y + TANK / 2, true);
         if (tank.type === 'player') {
             G.lives -= 1;
+            G.stars = 0;
             if (G.lives <= 0) endGame(false);
             else G.respawn = 1.5;
         } else {
-            G.score += TYPES[tank.type].score;
+            if (!silent) G.score += TYPES[tank.type].score;
+            if (tank.bonus && !silent) dropBonus();
             G.killed += 1;
-            if (G.killed >= TOTAL_ENEMIES) G.clearIn = 1.2;
+            G.killedTotal += 1;
+            if (G.killed >= G.total) G.clearIn = 1.2;
         }
     }
 
     function destroyBase() {
-        if (G.baseDead) return;
+        if (G.baseDead || G.invincible) return;
         G.baseDead = true;
         explode(G.base.x + TILE, G.base.y + TILE, true);
         endGame(false);
@@ -503,16 +601,17 @@
             destroyBase();
             return;
         }
-        if (hitSteel) {
+        if (hitSteel && !b.power) {
             b.alive = false;
             sound('steel');
             G.effects.push({ kind: 'spark', x: b.x, y: b.y, t: 0, life: 0.15 });
             return;
         }
-        if (hitBrick) {
+        if (hitBrick || hitSteel) {
             for (const [c, r] of tiles) {
                 if (c < 0 || r < 0 || c >= G.cols || r >= G.rows) continue;
-                if (G.grid[r * G.cols + c] === BRICK) G.grid[r * G.cols + c] = EMPTY;
+                const v = G.grid[r * G.cols + c];
+                if (v === BRICK || (v === STEEL && b.power)) G.grid[r * G.cols + c] = EMPTY;
             }
             b.alive = false;
             sound('brick');
@@ -527,7 +626,7 @@
             if (!overlap(b.x - BULLET / 2, b.y - BULLET / 2, BULLET, BULLET, tank.x, tank.y, TANK, TANK)) continue;
             b.alive = false;
             if (isPlayer) {
-                if (tank.shield > 0) {
+                if (tank.shield > 0 || G.invincible) {
                     sound('steel');
                     return;
                 }
@@ -563,13 +662,14 @@
             }
         }
         G.bullets = G.bullets.filter(b => {
-            if (!b.alive && b.owner && b.owner.bullet === b) b.owner.bullet = null;
+            if (!b.alive && b.owner) b.owner.shots = Math.max(0, b.owner.shots - 1);
             return b.alive;
         });
     }
 
     function updateEnemy(tank, dt) {
         const player = G.player;
+        if (G.freeze > 0) return;
         tank.think -= dt;
         if (tank.think <= 0) {
             tank.think = 0.5 + Math.random() * 1.3;
@@ -589,7 +689,7 @@
         if (!moved) {
             tank.blocked += dt;
             if (tank.blocked > 0.25) {
-                if (!tank.bullet && Math.random() < 0.5) shoot(tank);
+                if (tank.shots === 0 && Math.random() < 0.5) shoot(tank);
                 if (Math.random() < 0.08) {
                     const dirs = Object.keys(DIRS);
                     turn(tank, dirs[Math.floor(Math.random() * dirs.length)]);
@@ -601,7 +701,7 @@
         }
         tank.fire -= dt;
         if (tank.fire <= 0) {
-            tank.fire = 0.9 + Math.random() * 1.8;
+            tank.fire = (0.9 + Math.random() * 1.8) / (1 + (G.stage - 1) * 0.06);
             let aligned = false;
             if (player && player.alive) {
                 const [dx, dy] = DIRS[tank.dir];
@@ -616,14 +716,15 @@
         if (G.queue.length === 0) return;
         const point = G.spawns[G.spawnIndex % G.spawns.length];
         G.spawnIndex += 1;
-        G.effects.push({ kind: 'star', x: point.x, y: point.y, t: 0, life: 1, type: G.queue.shift() });
+        const next = G.queue.shift();
+        G.effects.push({ kind: 'star', x: point.x, y: point.y, t: 0, life: 1, type: next.type, bonus: next.bonus });
     }
 
     function tryPlaceEnemy(effect) {
         for (const tank of G.tanks) {
             if (tank.alive && overlap(effect.x, effect.y, TANK, TANK, tank.x, tank.y, TANK, TANK)) return false;
         }
-        const tank = makeTank(effect.type, effect.x, effect.y, 'down');
+        const tank = makeTank(effect.type, effect.x, effect.y, 'down', effect.bonus);
         G.tanks.push(tank);
         return true;
     }
@@ -638,7 +739,17 @@
             }
             return;
         }
+        if (G.phase === 'cleared') {
+            G.stageClear -= dt;
+            if (G.stageClear <= 0) loadStage(G.stage + 1);
+            return;
+        }
         if (G.paused) return;
+        if (G.freeze > 0) G.freeze -= dt;
+        if (G.shovel > 0) {
+            G.shovel -= dt;
+            if (G.shovel <= 0) setRing(BRICK);
+        }
         if (G.over) {
             G.overAt += dt;
             if (G.overAt > 1 && !G.ended) {
@@ -655,9 +766,15 @@
                 turn(player, dir);
                 advance(player, dt);
             }
-            if (G.firePressed || (G.fireHeld && !player.bullet)) {
+            if (G.firePressed || (G.fireHeld && player.shots < player.maxBullets)) {
                 G.firePressed = false;
                 shoot(player);
+            }
+            for (const bonus of G.bonuses) {
+                if (!bonus.taken && overlap(player.x, player.y, TANK, TANK, bonus.x, bonus.y, TANK, TANK)) {
+                    bonus.taken = true;
+                    applyBonus(bonus.kind);
+                }
             }
         } else if (G.respawn > 0 && !G.over) {
             G.respawn -= dt;
@@ -696,10 +813,18 @@
         }
         G.effects = G.effects.filter(e => e.kind === 'star' ? !e.done : e.t < e.life);
         G.tanks = G.tanks.filter(t => t.alive || t.type === 'player');
+        for (const bonus of G.bonuses) bonus.t += dt;
+        G.bonuses = G.bonuses.filter(b => !b.taken && b.t < b.life);
 
-        if (G.clearIn > 0) {
+        if (G.clearIn > 0 && !G.over) {
             G.clearIn -= dt;
-            if (G.clearIn <= 0) endGame(true);
+            if (G.clearIn <= 0) {
+                if (G.stage >= MAX_STAGE) endGame(true);
+                else {
+                    G.phase = 'cleared';
+                    G.stageClear = 2.6;
+                }
+            }
         }
     }
 
@@ -759,7 +884,7 @@
         ctx.save();
         ctx.translate(t.x + TANK / 2, t.y + TANK / 2);
         ctx.rotate(ROT[t.dir]);
-        const body = t.flash > 0 ? pal.bg : pal[t.type];
+        const body = t.flash > 0 ? pal.bg : (t.bonus && Math.floor(t.anim * 2 + G.time * 6) % 2 === 0 ? pal.player : pal[t.type]);
         ctx.fillStyle = pal.ink;
         ctx.fillRect(-15, -14, 6, 28);
         ctx.fillRect(9, -14, 6, 28);
@@ -807,6 +932,14 @@
             } else if (e.kind === 'spark') {
                 ctx.fillStyle = pal.mortar;
                 ctx.fillRect(e.x - 4, e.y - 4, 8, 8);
+            } else if (e.kind === 'text') {
+                ctx.globalAlpha = 1 - k;
+                ctx.fillStyle = pal.player;
+                ctx.font = `700 22px ${pal.mono}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(e.text, e.x, e.y - 30 - k * 30);
+                ctx.globalAlpha = 1;
             } else if (e.kind === 'star') {
                 const s = 6 + 10 * Math.abs(Math.sin(e.t * 12));
                 ctx.strokeStyle = pal.player;
@@ -818,6 +951,59 @@
                 ctx.lineTo(e.x + 16, e.y + 16 + s);
                 ctx.stroke();
             }
+        }
+    }
+
+    function drawBonus(ctx, b, pal) {
+        if (b.life - b.t < 3 && Math.floor(b.t * 8) % 2 === 0) return;
+        const x = b.x;
+        const y = b.y;
+        ctx.fillStyle = pal.bgDark;
+        ctx.fillRect(x, y, TANK, TANK);
+        ctx.strokeStyle = pal.ink;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 1, y + 1, TANK - 2, TANK - 2);
+        ctx.fillStyle = pal.ink;
+        ctx.strokeStyle = pal.ink;
+        const cx = x + TANK / 2;
+        const cy = y + TANK / 2;
+        if (b.kind === 'star') {
+            ctx.fillStyle = pal.player;
+            ctx.beginPath();
+            for (let i = 0; i < 10; i++) {
+                const radius = i % 2 ? 4.5 : 11;
+                const angle = -Math.PI / 2 + i * Math.PI / 5;
+                ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
+            }
+            ctx.closePath();
+            ctx.fill();
+        } else if (b.kind === 'helmet') {
+            ctx.beginPath();
+            ctx.arc(cx, cy + 3, 10, Math.PI, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(cx - 12, cy + 3, 24, 3);
+        } else if (b.kind === 'shovel') {
+            ctx.fillRect(cx - 2, cy - 12, 4, 14);
+            ctx.fillRect(cx - 7, cy + 2, 14, 9);
+            ctx.fillRect(cx - 5, cy - 13, 10, 3);
+        } else if (b.kind === 'timer') {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 11, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillRect(cx - 1, cy - 8, 2, 8);
+            ctx.fillRect(cx, cy - 1, 6, 2);
+        } else if (b.kind === 'grenade') {
+            ctx.beginPath();
+            ctx.arc(cx, cy + 2, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = pal.player;
+            ctx.fillRect(cx - 2, cy - 12, 4, 6);
+        } else if (b.kind === 'tank') {
+            ctx.fillRect(cx - 9, cy - 6, 18, 14);
+            ctx.fillRect(cx - 2, cy - 12, 4, 8);
+            ctx.fillStyle = pal.bgDark;
+            ctx.fillRect(cx - 4, cy - 2, 8, 6);
         }
     }
 
@@ -834,7 +1020,8 @@
             ctx.fillStyle = pal.ink;
             ctx.fillText(text, x, y);
         };
-        label(`STAGE 1   SCORE ${String(G.score).padStart(5, '0')}   IP ${'\u25AE'.repeat(Math.max(0, G.lives))}`, 48, 10, 'left');
+        const stars = '\u2605'.repeat(playerStars());
+        label(`STAGE ${G.stage}   SCORE ${String(G.score).padStart(6, '0')}   IP ${'\u25AE'.repeat(Math.max(0, G.lives))}${stars ? '   ' + stars : ''}`, 48, 10, 'left');
         const remaining = G.queue.length + G.effects.filter(e => e.kind === 'star').length + G.tanks.filter(t => t.alive && t.type !== 'player').length;
         label(`ENEMY ${remaining}`, G.W - 48, 10, 'right');
         ctx.fillStyle = pal.ink;
@@ -879,15 +1066,17 @@
         drawBase(ctx, pal);
         ctx.globalAlpha = 1;
         if (G.phase === 'intro') {
-            const best = G.best ? `high score ${G.best.name} ${G.best.score}` : 'the page is the map. defend the stamp.';
-            if (G.time > 0.7) drawBanner(ctx, pal, 'STAGE 1', best);
+            const best = G.stage === 1 ? (G.best ? `high score ${G.best.name} ${G.best.score}` : 'the page is the map. defend the stamp.') : `score ${G.score}   lives ${G.lives}${playerStars() ? '   ' + '\u2605'.repeat(playerStars()) : ''}`;
+            if (G.time > 0.7) drawBanner(ctx, pal, `STAGE ${G.stage}`, best);
             return;
         }
+        for (const bonus of G.bonuses) drawBonus(ctx, bonus, pal);
         for (const tank of G.tanks) if (tank.alive) drawTank(ctx, tank, pal);
         ctx.fillStyle = pal.ink;
         for (const b of G.bullets) ctx.fillRect(b.x - BULLET / 2, b.y - BULLET / 2, BULLET, BULLET);
         drawEffects(ctx, pal);
         drawHud(ctx, pal);
+        if (G.phase === 'cleared') drawBanner(ctx, pal, 'STAGE CLEAR', `score ${G.score}   next: stage ${G.stage + 1} of ${MAX_STAGE}`);
         if (G.paused) drawBanner(ctx, pal, 'PAUSE', 'P to continue');
         if (G.over && G.overAt > 0.8 && !G.panelMode) drawBanner(ctx, pal, G.won ? 'STAGE CLEAR' : 'GAME OVER', `score ${G.score}`);
     }
@@ -1030,55 +1219,81 @@
         wrap.appendChild(controls);
     }
 
-    function setupState(map) {
+    function stageScroll(stage) {
+        const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        if (maxScroll === 0) return 0;
+        return Math.round((G.scrollY0 + (stage - 1) * maxScroll / (MAX_STAGE - 1)) % (maxScroll + 1));
+    }
+
+    function setupStage(map) {
         G.grid = new Uint8Array(map.grid);
         G.base = map.base;
         G.playerSpawn = map.playerSpawn;
         G.spawns = map.spawns;
-        G.queue = enemyQueue();
+        G.queue = enemyQueue(G.stage);
         G.tanks = [];
         G.bullets = [];
         G.effects = [];
+        G.bonuses = [];
         G.held = [];
         G.firePressed = false;
         G.fireHeld = false;
-        G.lives = 3;
-        G.score = 0;
         G.killed = 0;
         G.time = 0;
         G.phase = 'intro';
         G.paused = false;
-        G.over = false;
-        G.won = false;
-        G.overAt = 0;
         G.respawn = 0;
         G.clearIn = 0;
+        G.stageClear = 0;
+        G.freeze = 0;
+        G.shovel = 0;
         G.baseDead = false;
         G.spawnIndex = 0;
         G.spawnTimer = 0;
-        G.ended = false;
-        clearPanel();
+        G.maxOnScreen = Math.min(G.cols * G.rows > 3000 ? 8 : 6, 4 + Math.floor((G.stage - 1) / 2));
         const player = makeTank('player', map.playerSpawn.x, map.playerSpawn.y, 'up');
         G.tanks.push(player);
         G.player = player;
     }
 
+    function loadStage(stage) {
+        G.stage = stage;
+        window.scrollTo({ top: stageScroll(stage), left: 0, behavior: 'instant' });
+        const map = scanMap(G.cols, G.rows, G.W, G.H);
+        G.map = map;
+        setupStage(map);
+    }
+
+    function newGame() {
+        G.stage = 1;
+        G.stars = 0;
+        G.lives = 3;
+        G.score = 0;
+        G.killedTotal = 0;
+        G.over = false;
+        G.won = false;
+        G.overAt = 0;
+        G.ended = false;
+        clearPanel();
+        loadStage(1);
+    }
+
     function restart() {
-        setupState(G.map);
+        newGame();
         G.time = 0.7;
     }
 
-    function start() {
+    function start(options) {
         if (G) return true;
+        const perStage = options && Number.isInteger(options.enemiesPerStage) ? Math.max(1, Math.min(TOTAL_ENEMIES, options.enemiesPerStage)) : TOTAL_ENEMIES;
         const touch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
-        const strip = touch ? (window.innerHeight > 560 ? 152 : 104) : 0;
+        const strip = touch ? (window.innerHeight > 600 ? 176 : 120) : 0;
         const W = Math.floor(window.innerWidth / TILE) * TILE;
         const H = Math.floor((window.innerHeight - strip) / TILE) * TILE;
         const cols = W / TILE;
         const rows = H / TILE;
         if (cols < 18 || rows < 16) return false;
 
-        const map = scanMap(cols, rows, W, H);
         const wrap = document.createElement('div');
         wrap.className = 'battle-city' + (touch ? ' is-touch' : '');
         wrap.style.setProperty('--strip', strip + 'px');
@@ -1097,9 +1312,9 @@
         ctx.scale(dpr, dpr);
         ctx.imageSmoothingEnabled = false;
 
-        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map, touch, pal: palette(), maxOnScreen: cols * rows > 3000 ? 6 : 4, last: performance.now(), raf: 0, best: null, fireHeld: false };
+        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map: null, touch, pal: palette(), maxOnScreen: 4, last: performance.now(), raf: 0, best: null, fireHeld: false, scrollY0: window.scrollY, stage: 1, stars: 0, total: perStage, invincible: !!(options && options.invincible) };
         if (touch) buildTouchControls(wrap);
-        setupState(map);
+        newGame();
         fetchScores().then(result => {
             if (G && result.scores.length) G.best = result.scores[0];
         });
@@ -1126,6 +1341,7 @@
         document.removeEventListener('visibilitychange', onVisibility);
         G.wrap.remove();
         document.body.style.overflow = G.prevOverflow;
+        window.scrollTo({ top: G.scrollY0, left: 0, behavior: 'instant' });
         document.documentElement.classList.remove('battle');
         G = null;
     }
@@ -1136,6 +1352,9 @@
             phase: G.phase,
             over: G.over,
             won: G.won,
+            stage: G.stage,
+            stars: playerStars(),
+            bonuses: G.bonuses.length,
             lives: G.lives,
             score: G.score,
             killed: G.killed,
