@@ -15,7 +15,7 @@
     const COAST = -MAX_SPEED / 5;
     const OFFROAD = -MAX_SPEED / 1.6;
     const OFFROAD_LIMIT = MAX_SPEED / 4;
-    const CENTRIFUGAL = 0.32;
+    const CENTRIFUGAL = 0.22;
     const TRAFFIC = 42;
     const ROUND_SECONDS = 60;
     const GRAVITY = 3.4;
@@ -243,29 +243,80 @@
         }
     }
 
+    function roundRect(ctx, x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        ctx.lineTo(x + radius, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fill();
+    }
+
     function drawCarSprite(ctx, x, y, w, shade, spin, isPlayer) {
-        const h = w * 0.62;
+        const h = w * 0.82;
+        const body = isPlayer ? PAL.car : PAL.traffic[shade];
+        const dark = isPlayer ? PAL.carDark : '#1f1f1f';
         ctx.save();
         ctx.translate(x, y);
         if (spin) ctx.rotate(spin);
         ctx.fillStyle = PAL.shadow;
-        ctx.fillRect(-w / 2 - w * 0.05, -h * 0.08, w * 1.1, h * 0.16);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, w * 0.56, w * 0.085, 0, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = PAL.ink;
-        ctx.fillRect(-w / 2, -h * 0.35, w * 0.16, h * 0.42);
-        ctx.fillRect(w / 2 - w * 0.16, -h * 0.35, w * 0.16, h * 0.42);
-        ctx.fillStyle = isPlayer ? PAL.car : PAL.traffic[shade];
-        ctx.fillRect(-w * 0.44, -h, w * 0.88, h * 0.95);
-        ctx.fillStyle = isPlayer ? PAL.carDark : PAL.ink;
-        ctx.fillRect(-w * 0.44, -h * 0.28, w * 0.88, h * 0.1);
+        roundRect(ctx, -w * 0.5, -h * 0.4, w * 0.17, h * 0.4, w * 0.035);
+        roundRect(ctx, w * 0.33, -h * 0.4, w * 0.17, h * 0.4, w * 0.035);
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(-w * 0.46, -h * 0.34, w * 0.09, h * 0.28);
+        ctx.fillRect(w * 0.37, -h * 0.34, w * 0.09, h * 0.28);
+        ctx.fillStyle = body;
+        roundRect(ctx, -w * 0.46, -h * 0.56, w * 0.92, h * 0.47, w * 0.05);
+        ctx.fillStyle = dark;
+        ctx.fillRect(-w * 0.43, -h * 0.34, w * 0.86, h * 0.15);
+        ctx.fillStyle = '#f4f4f4';
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(-w * 0.41 + i * w * 0.06, -h * 0.31, w * 0.045, h * 0.09);
+            ctx.fillRect(w * 0.41 - i * w * 0.06 - w * 0.045, -h * 0.31, w * 0.045, h * 0.09);
+        }
+        ctx.fillStyle = PAL.ink;
+        ctx.fillRect(-w * 0.46, -h * 0.15, w * 0.92, h * 0.04);
+        ctx.beginPath();
+        ctx.arc(-w * 0.2, -h * 0.085, w * 0.03, 0, Math.PI * 2);
+        ctx.arc(w * 0.2, -h * 0.085, w * 0.03, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = dark;
+        ctx.fillRect(-w * 0.44, -h * 0.6, w * 0.88, h * 0.05);
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.37, -h * 0.56);
+        ctx.lineTo(-w * 0.28, -h);
+        ctx.lineTo(w * 0.28, -h);
+        ctx.lineTo(w * 0.37, -h * 0.56);
+        ctx.closePath();
+        ctx.fill();
         ctx.fillStyle = PAL.glass;
-        ctx.fillRect(-w * 0.34, -h * 0.92, w * 0.68, h * 0.22);
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.31, -h * 0.6);
+        ctx.lineTo(-w * 0.24, -h * 0.93);
+        ctx.lineTo(w * 0.24, -h * 0.93);
+        ctx.lineTo(w * 0.31, -h * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = body;
+        ctx.fillRect(-w * 0.28, -h, w * 0.56, h * 0.06);
         if (isPlayer) {
             ctx.fillStyle = PAL.stripe;
-            ctx.fillRect(-w * 0.1, -h, w * 0.06, h * 0.95);
-            ctx.fillRect(w * 0.04, -h, w * 0.06, h * 0.95);
-            ctx.fillStyle = PAL.text;
-            ctx.fillRect(-w * 0.4, -h * 0.2, w * 0.1, h * 0.06);
-            ctx.fillRect(w * 0.3, -h * 0.2, w * 0.1, h * 0.06);
+            ctx.fillRect(-w * 0.085, -h, w * 0.055, h * 0.95);
+            ctx.fillRect(w * 0.03, -h, w * 0.055, h * 0.95);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.fillRect(-w * 0.28, -h * 0.98, w * 0.56, h * 0.02);
         }
         ctx.restore();
     }
@@ -458,8 +509,9 @@
 
         const playerSegment = findSegment(G.position + G.playerZ);
         const speedPercent = G.speed / MAX_SPEED;
-        const dx = dt * 2 * speedPercent;
-        const steer = clamp(G.steer, -1, 1);
+        G.steerSmooth += (clamp(G.steer, -1, 1) - G.steerSmooth) * Math.min(1, dt * 9);
+        const steer = G.steerSmooth;
+        const dx = dt * (1.1 + 1.3 * speedPercent);
 
         if (G.air.y > 0 || G.air.vy > 0) {
             G.air.vy -= GRAVITY * dt;
@@ -471,10 +523,10 @@
                 dust(24, PAL.dust, 90);
                 sound('land');
             }
-            G.playerX += dx * steer * 0.35;
+            G.playerX += dx * steer * 0.45;
         } else {
             G.playerX += dx * steer;
-            G.playerX -= dx * speedPercent * playerSegment.curve * CENTRIFUGAL;
+            G.playerX -= dt * 2 * speedPercent * speedPercent * playerSegment.curve * CENTRIFUGAL;
         }
         G.steerTilt += ((steer * 3) - G.steerTilt) * Math.min(1, dt * 10);
 
@@ -530,7 +582,7 @@
 
         if (playing && G.air.y === 0 && G.invulnerable <= 0) {
             for (const car of playerSegment.cars) {
-                if (G.speed > car.speed && overlap(G.playerX, 0.34, car.offset, car.w, 0.8)) {
+                if (G.speed > car.speed && overlap(G.playerX, 0.3, car.offset, car.w, 0.75)) {
                     G.speed = Math.max(car.speed * 0.6, MAX_SPEED * 0.12);
                     G.spinTime = 0.8;
                     G.invulnerable = 1.6;
@@ -813,7 +865,10 @@
     function onPointerMove(event) {
         if (!G || !G.pointer.active || event.pointerId !== G.pointer.id) return;
         event.preventDefault();
-        const delta = (event.clientX - G.pointer.startX) / Math.max(60, G.W * 0.12);
+        const raw = event.clientX - G.pointer.startX;
+        const dead = 8;
+        const travel = Math.max(90, G.W * 0.18);
+        const delta = Math.abs(raw) < dead ? 0 : (raw - Math.sign(raw) * dead) / travel;
         G.pointer.steer = clamp(delta, -1, 1);
         applyKeys();
     }
@@ -870,6 +925,7 @@
         G.texts = [];
         G.newBest = false;
         G.steer = 0;
+        G.steerSmooth = 0;
         G.steerTilt = 0;
         G.throttle = false;
         G.brake = false;
