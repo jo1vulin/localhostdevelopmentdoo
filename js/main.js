@@ -39,6 +39,113 @@ function launchBattleCity() {
     return true;
 }
 
+function fingerprint(text) {
+    let hash = 5381;
+    for (let i = 0; i < text.length; i++) hash = (Math.imul(hash, 33) ^ text.charCodeAt(i)) >>> 0;
+    return hash;
+}
+
+function sealMarkup(prefix, withInk) {
+    const ink = withInk ? `<filter id="${prefix}-ink" x="-6%" y="-6%" width="112%" height="112%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="${Math.floor(Math.random() * 900)}" result="warp"/><feDisplacementMap in="SourceGraphic" in2="warp" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="rough"/><feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="${Math.floor(Math.random() * 900)}" result="grain"/><feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -0.42" result="grain-alpha"/><feComposite in="rough" in2="grain-alpha" operator="in"/></filter>` : '';
+    return `<svg class="seal" viewBox="0 0 240 240" aria-hidden="true" focusable="false"><defs><path id="${prefix}-top" d="M 13,120 A 107,107 0 0 1 227,120"/><path id="${prefix}-bottom" d="M 5,120 A 115,115 0 0 0 235,120"/>${ink}</defs><g${withInk ? ` filter="url(#${prefix}-ink)"` : ''}><circle cx="120" cy="120" r="118" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="120" cy="120" r="104" fill="none" stroke="currentColor" stroke-width="1"/><text class="seal-text"><textPath href="#${prefix}-top" startOffset="50%" text-anchor="middle">Localhost Development</textPath></text><text class="seal-text"><textPath href="#${prefix}-bottom" startOffset="50%" text-anchor="middle">Sombor · Serbia</textPath></text><circle cx="9" cy="120" r="2.5" fill="currentColor"/><circle cx="231" cy="120" r="2.5" fill="currentColor"/><text class="seal-monogram" x="116" y="152" text-anchor="middle">lh<tspan class="seal-dot">.</tspan></text></g></svg>`;
+}
+
+function whoosh(kind) {
+    try {
+        const ac = whoosh.ctx || (whoosh.ctx = new (window.AudioContext || window.webkitAudioContext)());
+        if (ac.state === 'suspended') ac.resume();
+        const now = ac.currentTime;
+        const gain = ac.createGain();
+        gain.connect(ac.destination);
+        if (kind === 'thump') {
+            const osc = ac.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(110, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain);
+            osc.start(now);
+            osc.stop(now + 0.32);
+            return;
+        }
+        const length = Math.floor(ac.sampleRate * 0.6);
+        const buffer = ac.createBuffer(1, length, ac.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+        const src = ac.createBufferSource();
+        src.buffer = buffer;
+        const filter = ac.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.Q.value = 1.2;
+        filter.frequency.setValueAtTime(kind === 'up' ? 300 : 2400, now);
+        filter.frequency.exponentialRampToValueAtTime(kind === 'up' ? 2400 : 300, now + 0.55);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+        src.connect(filter);
+        filter.connect(gain);
+        src.start(now);
+        src.stop(now + 0.62);
+    } catch (err) {
+        return;
+    }
+}
+
+function flipTheSheet() {
+    if (inBattle() || document.querySelector('.flip-back')) return;
+    const root = document.documentElement;
+    const body = document.body;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const back = document.createElement('div');
+    back.className = 'flip-back';
+    back.setAttribute('aria-hidden', 'true');
+    back.innerHTML = `<div class="flip-inner"><div class="flip-stamp">${sealMarkup('flip', true)}</div><p class="flip-line">Hvala što ste zavirili.</p><p class="flip-sub">Thanks for looking under the hood.</p></div>`;
+    root.appendChild(back);
+
+    const centerY = window.scrollY + window.innerHeight / 2;
+    body.style.transformOrigin = `50% ${centerY}px`;
+    body.style.backfaceVisibility = 'hidden';
+    root.style.perspective = '1500px';
+    root.classList.add('flipping');
+
+    const stamp = back.querySelector('.flip-stamp');
+    const lines = back.querySelectorAll('.flip-line, .flip-sub');
+    const timing = { duration: reduce ? 1 : 700, fill: 'forwards' };
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    const flipMs = reduce ? 1 : 700;
+    const sequence = async () => {
+        if (!reduce) whoosh('up');
+        body.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { ...timing, easing: 'cubic-bezier(0.55, 0, 1, 0.45)' });
+        await wait(flipMs);
+        back.classList.add('is-front');
+        back.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { ...timing, easing: 'cubic-bezier(0, 0.55, 0.45, 1)' });
+        await wait(flipMs + (reduce ? 50 : 200));
+        if (!reduce) whoosh('thump');
+        stamp.classList.add('is-down');
+        back.classList.add('is-shaken');
+        await wait(reduce ? 50 : 500);
+        lines.forEach(line => line.classList.add('is-visible'));
+        await wait(reduce ? 1200 : 2200);
+        if (!reduce) whoosh('down');
+        back.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-90deg)' }], { ...timing, easing: 'cubic-bezier(0.55, 0, 1, 0.45)' });
+        await wait(flipMs);
+        back.classList.remove('is-front');
+        body.animate([{ transform: 'rotateY(90deg)' }, { transform: 'rotateY(0deg)' }], { ...timing, easing: 'cubic-bezier(0, 0.55, 0.45, 1)' });
+        await wait(flipMs);
+    };
+
+    sequence().catch(() => null).then(() => {
+        body.getAnimations().forEach(animation => animation.cancel());
+        body.style.transformOrigin = '';
+        body.style.backfaceVisibility = '';
+        root.style.perspective = '';
+        root.classList.remove('flipping');
+        back.remove();
+    });
+}
+
 function initBattleCode() {
     const code = 'battlecity';
     let buffer = '';
@@ -362,6 +469,11 @@ function initTerminal() {
         print('$ ' + line, 'cmd');
         history.push(line);
         historyIndex = history.length;
+        if (fingerprint(line) === 1001122324) {
+            close();
+            setTimeout(flipTheSheet, 380);
+            return;
+        }
         const [name, ...args] = line.split(/\s+/);
         const key = name.toLowerCase();
         const command = commands[key];
