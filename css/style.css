@@ -1816,7 +1816,22 @@ html.flipping {
 }
 
 html.flipping body {
+    perspective: 1500px;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.flip-front {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--paper);
+    backface-visibility: hidden;
     will-change: transform;
+}
+
+.flip-front-inner {
+    width: 100%;
 }
 
 .flip-back {

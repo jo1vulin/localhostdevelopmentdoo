@@ -54,6 +54,7 @@ function whoosh(kind) {
     try {
         const ac = whoosh.ctx || (whoosh.ctx = new (window.AudioContext || window.webkitAudioContext)());
         if (ac.state === 'suspended') ac.resume();
+        if (kind === 'prime') return;
         const now = ac.currentTime;
         const gain = ac.createGain();
         gain.connect(ac.destination);
@@ -93,31 +94,37 @@ function whoosh(kind) {
 }
 
 function flipTheSheet() {
-    if (inBattle() || document.querySelector('.flip-back')) return;
+    if (inBattle() || document.querySelector('.flip-front')) return;
     const root = document.documentElement;
     const body = document.body;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const scrollY = window.scrollY;
+
+    const front = document.createElement('div');
+    front.className = 'flip-front';
+    const inner = document.createElement('div');
+    inner.className = 'flip-front-inner';
+    inner.style.transform = `translateY(-${scrollY}px)`;
+    while (body.firstChild) inner.appendChild(body.firstChild);
+    front.appendChild(inner);
+    body.appendChild(front);
+
     const back = document.createElement('div');
     back.className = 'flip-back';
     back.setAttribute('aria-hidden', 'true');
     back.innerHTML = `<div class="flip-inner"><div class="flip-stamp">${sealMarkup('flip', true)}</div><p class="flip-line">Hvala što ste zavirili.</p><p class="flip-sub">Thanks for looking under the hood.</p></div>`;
-    root.appendChild(back);
-
-    const centerY = window.scrollY + window.innerHeight / 2;
-    body.style.transformOrigin = `50% ${centerY}px`;
-    body.style.backfaceVisibility = 'hidden';
-    root.style.perspective = '1500px';
+    body.appendChild(back);
     root.classList.add('flipping');
 
     const stamp = back.querySelector('.flip-stamp');
     const lines = back.querySelectorAll('.flip-line, .flip-sub');
-    const timing = { duration: reduce ? 1 : 700, fill: 'forwards' };
+    const flipMs = reduce ? 1 : 700;
+    const timing = { duration: flipMs, fill: 'forwards' };
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-    const flipMs = reduce ? 1 : 700;
     const sequence = async () => {
         if (!reduce) whoosh('up');
-        body.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { ...timing, easing: 'cubic-bezier(0.55, 0, 1, 0.45)' });
+        front.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { ...timing, easing: 'cubic-bezier(0.55, 0, 1, 0.45)' });
         await wait(flipMs);
         back.classList.add('is-front');
         back.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { ...timing, easing: 'cubic-bezier(0, 0.55, 0.45, 1)' });
@@ -132,17 +139,16 @@ function flipTheSheet() {
         back.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-90deg)' }], { ...timing, easing: 'cubic-bezier(0.55, 0, 1, 0.45)' });
         await wait(flipMs);
         back.classList.remove('is-front');
-        body.animate([{ transform: 'rotateY(90deg)' }, { transform: 'rotateY(0deg)' }], { ...timing, easing: 'cubic-bezier(0, 0.55, 0.45, 1)' });
+        front.animate([{ transform: 'rotateY(90deg)' }, { transform: 'rotateY(0deg)' }], { ...timing, easing: 'cubic-bezier(0, 0.55, 0.45, 1)' });
         await wait(flipMs);
     };
 
     sequence().catch(() => null).then(() => {
-        body.getAnimations().forEach(animation => animation.cancel());
-        body.style.transformOrigin = '';
-        body.style.backfaceVisibility = '';
-        root.style.perspective = '';
-        root.classList.remove('flipping');
         back.remove();
+        while (inner.firstChild) body.insertBefore(inner.firstChild, front);
+        front.remove();
+        root.classList.remove('flipping');
+        window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
     });
 }
 
@@ -470,6 +476,7 @@ function initTerminal() {
         history.push(line);
         historyIndex = history.length;
         if (fingerprint(line) === 1001122324) {
+            whoosh('prime');
             close();
             setTimeout(flipTheSheet, 380);
             return;
