@@ -224,6 +224,8 @@
     }
 
     function scanMap(cols, rows, W, H) {
+        const zoom = G ? G.zoom : 1;
+        const scaled = rc => ({ left: rc.left / zoom, right: rc.right / zoom, top: rc.top / zoom, bottom: rc.bottom / zoom, width: rc.width / zoom, height: rc.height / zoom });
         const grid = new Uint8Array(cols * rows);
         const set = (c, r, v) => {
             if (c >= 0 && r >= 0 && c < cols && r < rows) grid[r * cols + c] = v;
@@ -252,16 +254,19 @@
         while ((node = walker.nextNode())) {
             range.selectNodeContents(node);
             const rects = range.getClientRects();
-            for (let i = 0; i < rects.length; i++) if (visible(rects[i])) markRect(rects[i], BRICK);
+            for (let i = 0; i < rects.length; i++) {
+                const rc = scaled(rects[i]);
+                if (visible(rc)) markRect(rc, BRICK);
+            }
         }
 
         document.querySelectorAll('.portrait, .btn, .client-logo, .copy-btn').forEach(el => {
-            const rc = el.getBoundingClientRect();
+            const rc = scaled(el.getBoundingClientRect());
             if (visible(rc)) markRect(rc, STEEL);
         });
 
         document.querySelectorAll('.hero-mark .seal, .footer-seal').forEach(el => {
-            const rc = el.getBoundingClientRect();
+            const rc = scaled(el.getBoundingClientRect());
             if (!visible(rc)) return;
             const cx = rc.left + rc.width / 2;
             const cy = rc.top + rc.height / 2;
@@ -1078,7 +1083,10 @@
             const row = Math.floor(i / 10);
             ctx.fillRect(G.W - 48 - (col + 1) * 11 + 3, 30 + row * 10, 8, 7);
         }
-        if (!G.touch) label('ARROWS / WASD MOVE   SPACE FIRE   P PAUSE   M SOUND   ESC QUIT', 12, G.H - 20, 'left');
+        if (!G.touch) {
+            label('ARROWS MOVE  SPACE FIRE', 12, G.H - 38, 'left');
+            label('P PAUSE  M SOUND  ESC QUIT', 12, G.H - 20, 'left');
+        }
     }
 
     function drawBanner(ctx, pal, title, sub) {
@@ -1349,8 +1357,9 @@
         const perStage = options && Number.isInteger(options.enemiesPerStage) ? Math.max(1, Math.min(TOTAL_ENEMIES, options.enemiesPerStage)) : TOTAL_ENEMIES;
         const touch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
         const strip = touch ? (window.innerHeight > 600 ? 176 : 120) : 0;
-        const W = Math.floor(window.innerWidth / TILE) * TILE;
-        const H = Math.floor((window.innerHeight - strip) / TILE) * TILE;
+        const zoom = touch ? 1 : (window.innerWidth >= 1000 ? 2 : 1.5);
+        const W = Math.floor(window.innerWidth / zoom / TILE) * TILE;
+        const H = Math.floor((window.innerHeight - strip) / zoom / TILE) * TILE;
         const cols = W / TILE;
         const rows = H / TILE;
         if (cols < 18 || rows < 16) return false;
@@ -1362,18 +1371,18 @@
         panel.hidden = true;
         const canvas = document.createElement('canvas');
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = W * dpr;
-        canvas.height = H * dpr;
-        canvas.style.width = W + 'px';
-        canvas.style.height = H + 'px';
+        canvas.width = Math.round(W * zoom * dpr);
+        canvas.height = Math.round(H * zoom * dpr);
+        canvas.style.width = Math.round(W * zoom) + 'px';
+        canvas.style.height = Math.round(H * zoom) + 'px';
         wrap.appendChild(canvas);
         wrap.appendChild(panel);
         document.body.appendChild(wrap);
         const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
+        ctx.scale(dpr * zoom, dpr * zoom);
         ctx.imageSmoothingEnabled = false;
 
-        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map: null, touch, pal: palette(), maxOnScreen: 4, last: performance.now(), raf: 0, best: null, fireHeld: false, scrollY0: window.scrollY, stage: 1, stars: 0, total: perStage, invincible: !!(options && options.invincible) };
+        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map: null, touch, pal: palette(), maxOnScreen: 4, last: performance.now(), raf: 0, best: null, fireHeld: false, scrollY0: window.scrollY, stage: 1, stars: 0, total: perStage, invincible: !!(options && options.invincible), zoom };
         if (touch) buildTouchControls(wrap);
         newGame();
         fetchScores().then(result => {

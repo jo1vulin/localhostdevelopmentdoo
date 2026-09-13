@@ -7,7 +7,7 @@
     const LANES = 3;
     const CAMERA_HEIGHT = 1000;
     const FOV = 100;
-    const DRAW = 220;
+    const DRAW = 170;
     const FOG = 3.2;
     const MAX_SPEED = 7400;
     const ACCEL = MAX_SPEED / 4.2;
@@ -279,6 +279,38 @@
         return segments;
     }
 
+    function windowPattern(ctx, color, cell, size) {
+        const c = document.createElement('canvas');
+        c.width = cell;
+        c.height = cell + 4;
+        const cx = c.getContext('2d');
+        cx.fillStyle = color;
+        cx.fillRect(Math.floor(cell * 0.3), Math.floor(cell * 0.3), size, size + 1);
+        return ctx.createPattern(c, 'repeat');
+    }
+
+    function prerenderSkyline(layers) {
+        return layers.map(layer => {
+            const height = 320;
+            const c = document.createElement('canvas');
+            c.width = Math.ceil(layer.width);
+            c.height = height;
+            const cx = c.getContext('2d');
+            const pattern = windowPattern(cx, layer.window, 9, 2);
+            for (const b of layer.buildings) {
+                const top = height - b.h * layer.scale;
+                cx.fillStyle = layer.color;
+                cx.fillRect(b.x, top, b.w, b.h * layer.scale + 4);
+                if (b.roof) cx.fillRect(b.x + b.w * 0.4, top - 8 * layer.scale, b.w * 0.2, 8 * layer.scale);
+                if (b.windows && layer.scale > 0.6) {
+                    cx.fillStyle = pattern;
+                    cx.fillRect(b.x + 3, top + 4, Math.max(0, b.w - 6), Math.max(0, b.h * layer.scale - 8));
+                }
+            }
+            return Object.assign(layer, { canvas: c, height });
+        });
+    }
+
     function buildSkyline(seed, layers) {
         const r = rand(seed);
         return layers.map((layer, li) => {
@@ -388,21 +420,12 @@
         if (bottom <= top) return;
         ctx.fillStyle = fogColor([PAL.near, PAL.mid, PAL.far][b.shade], seg.fog);
         ctx.fillRect(left, top, w, bottom - top);
-        if (w > 10 && h > 14) {
-            ctx.fillStyle = fogColor(PAL.window, seg.fog);
-            const cols = Math.max(1, Math.floor(w / 9));
-            const rows = Math.max(1, Math.floor(h / 12));
-            const cw = w / cols;
-            const rh = h / rows;
-            for (let i = 0; i < cols; i++) {
-                for (let j = 0; j < rows; j++) {
-                    if (((seg.index * 7 + i * 13 + j * 5) % 11) < 6) continue;
-                    const wx = left + i * cw + cw * 0.3;
-                    const wy = top + j * rh + rh * 0.25;
-                    if (wy + rh * 0.4 > bottom) continue;
-                    ctx.fillRect(wx, wy, Math.max(1, cw * 0.4), Math.max(1, rh * 0.4));
-                }
-            }
+        if (w > 14 && h > 18 && seg.fog > 0.25) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, seg.fog);
+            ctx.fillStyle = G.windowPattern;
+            ctx.fillRect(left + 3, top + 4, Math.max(0, w - 6), Math.max(0, bottom - top - 8));
+            ctx.restore();
         }
     }
 
@@ -623,26 +646,9 @@
         ctx.fillRect(0, 0, G.W, G.H);
         const horizon = G.H * 0.5 + G.hillOffset;
         for (const layer of G.skyline) {
-            const shift = (G.skyOffset * layer.speed) % layer.width;
-            ctx.fillStyle = layer.color;
-            for (let pass = -1; pass <= 1; pass++) {
-                for (const b of layer.buildings) {
-                    const bx = b.x - shift + pass * layer.width;
-                    if (bx + b.w < 0 || bx > G.W) continue;
-                    const top = horizon - b.h * layer.scale;
-                    ctx.fillStyle = layer.color;
-                    ctx.fillRect(bx, top, b.w, b.h * layer.scale + 4);
-                    if (b.roof) ctx.fillRect(bx + b.w * 0.4, top - 8 * layer.scale, b.w * 0.2, 8 * layer.scale);
-                    if (b.windows && layer.scale > 0.6) {
-                        ctx.fillStyle = layer.window;
-                        for (let i = 3; i < b.w - 4; i += b.wx) {
-                            for (let j = 4; j < b.h * layer.scale - 4; j += b.wy) {
-                                if (((i * 31 + j * 17 + b.x) % 7) < 3) ctx.fillRect(bx + i, top + j, 2, 3);
-                            }
-                        }
-                    }
-                }
-            }
+            const shift = ((G.skyOffset * layer.speed) % layer.width + layer.width) % layer.width;
+            const top = horizon - layer.height + 4;
+            for (let x = -shift; x < G.W; x += layer.width) ctx.drawImage(layer.canvas, x, top);
         }
     }
 
@@ -1104,6 +1110,7 @@
         audio.nextNote = ac.currentTime + 0.1;
         const stepLen = 60 / BPM / 4;
         audio.timer = setInterval(() => {
+            if (audio.nextNote < ac.currentTime - 0.5) audio.nextNote = ac.currentTime + 0.05;
             while (audio.nextNote < ac.currentTime + 0.2) {
                 playStep(audio.nextNote, audio.step);
                 audio.nextNote += stepLen;
@@ -1227,7 +1234,7 @@
     function onPointerMove(event) {
         if (!G || !G.pointer.active || event.pointerId !== G.pointer.id) return;
         event.preventDefault();
-        const raw = event.clientX - G.pointer.startX;
+        const raw = (event.clientX - G.pointer.startX) * (G.W / window.innerWidth);
         const dead = 8;
         const travel = Math.max(90, G.W * 0.18);
         const delta = Math.abs(raw) < dead ? 0 : (raw - Math.sign(raw) * dead) / travel;
@@ -1257,11 +1264,11 @@
         G.seed = Math.floor(Math.random() * 1e9);
         G.segments = buildTrack(G.seed);
         G.trackLength = G.segments.length * SEG;
-        G.skyline = buildSkyline(G.seed + 7, [
+        G.skyline = prerenderSkyline(buildSkyline(G.seed + 7, [
             { color: PAL.far, window: '#bdbdbd', speed: 0.05, scale: 0.55 },
             { color: PAL.mid, window: '#d4d4d4', speed: 0.12, scale: 0.8 },
             { color: PAL.near, window: PAL.window, speed: 0.25, scale: 1.05 },
-        ]);
+        ]));
         resetCars();
         G.position = 0;
         G.playerX = 0;
@@ -1307,31 +1314,32 @@
     function start() {
         if (G) return true;
         const touch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
-        const W = window.innerWidth;
-        const H = window.innerHeight;
-        if (W < 280 || H < 300) return false;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (vw < 280 || vh < 300) return false;
+        const k = Math.max(1, Math.sqrt((vw * vh) / 1000000));
+        const W = Math.round(vw / k);
+        const H = Math.round(vh / k);
         const wrap = document.createElement('div');
         wrap.className = 'eleanor';
         const panel = el('div', 'battle-panel');
         panel.hidden = true;
         const canvas = document.createElement('canvas');
-        const dpr = Math.min(1.5, window.devicePixelRatio || 1);
-        canvas.width = Math.floor(W * dpr);
-        canvas.height = Math.floor(H * dpr);
-        canvas.style.width = W + 'px';
-        canvas.style.height = H + 'px';
+        canvas.width = W;
+        canvas.height = H;
+        canvas.style.width = vw + 'px';
+        canvas.style.height = vh + 'px';
         wrap.appendChild(canvas);
         wrap.appendChild(panel);
         document.body.appendChild(wrap);
         const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
         let best = 0;
         try {
             best = Number(localStorage.getItem('lh-eleanor-best') || 0);
         } catch (err) {
             best = 0;
         }
-        G = { W, H, canvas, ctx, wrap, panel, panelMode: null, worldBest: null, touch, best, mono: (getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || 'monospace').trim(), cameraDepth: 1 / Math.tan((FOV / 2) * Math.PI / 180), playerZ: CAMERA_HEIGHT / (1 / Math.tan((FOV / 2) * Math.PI / 180)), last: performance.now(), raf: 0 };
+        G = { W, H, canvas, ctx, wrap, panel, panelMode: null, worldBest: null, touch, best, windowPattern: windowPattern(ctx, PAL.window, 9, 2), mono: (getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || 'monospace').trim(), cameraDepth: 1 / Math.tan((FOV / 2) * Math.PI / 180), playerZ: CAMERA_HEIGHT / (1 / Math.tan((FOV / 2) * Math.PI / 180)), last: performance.now(), raf: 0 };
         G.prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         document.documentElement.classList.add('race');
