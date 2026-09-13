@@ -1678,10 +1678,13 @@ html.theme-glitch body {
 
 .battle-panel {
     position: absolute;
+    z-index: 5;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
     width: min(92vw, 460px);
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
     padding: 1.5rem 1.75rem 1.25rem;
     background: rgba(var(--footer-rgb), 0.94);
     color: var(--on-dark);
@@ -1943,8 +1946,13 @@ html.flipping body {
     user-select: none;
 }
 
+.battle-city.has-panel .battle-controls {
+    display: none;
+}
+
 .battle-controls {
     position: absolute;
+    z-index: 1;
     left: 0;
     right: 0;
     bottom: 0;

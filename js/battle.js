@@ -97,6 +97,7 @@
         G.panel.replaceChildren();
         G.panel.hidden = true;
         G.panelMode = null;
+        G.wrap.classList.remove('has-panel');
     }
 
     function showNameForm() {
@@ -128,6 +129,7 @@
         panel.appendChild(form);
         panel.appendChild(el('p', 'battle-hint', G.touch ? 'save your score or skip' : 'ENTER to save   ESC to skip'));
         panel.hidden = false;
+        G.wrap.classList.add('has-panel');
         form.addEventListener('submit', event => {
             event.preventDefault();
             const name = input.value.replace(/[^\p{L}\p{N} _.'-]/gu, '').trim().slice(0, MAX_NAME) || 'anon';
@@ -186,6 +188,7 @@
         panel.appendChild(actions);
         if (!G.touch) panel.appendChild(el('p', 'battle-hint', 'R play again   ESC back to the site'));
         panel.hidden = false;
+        G.wrap.classList.add('has-panel');
     }
 
     function onRoundEnd() {

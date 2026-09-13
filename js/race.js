@@ -99,6 +99,7 @@
         G.panel.replaceChildren();
         G.panel.hidden = true;
         G.panelMode = null;
+        G.wrap.classList.remove('has-panel');
     }
 
     function themeName() {
@@ -135,6 +136,7 @@
         panel.appendChild(form);
         panel.appendChild(el('p', 'battle-hint', G.touch ? 'save your run or skip' : 'ENTER to save   ESC to skip'));
         panel.hidden = false;
+        G.wrap.classList.add('has-panel');
         form.addEventListener('submit', event => {
             event.preventDefault();
             const name = input.value.replace(/[^\p{L}\p{N} _.'-]/gu, '').trim().slice(0, MAX_NAME) || 'anon';
@@ -192,6 +194,7 @@
         panel.appendChild(actions);
         if (!G.touch) panel.appendChild(el('p', 'battle-hint', 'R drive again   ESC back to the site'));
         panel.hidden = false;
+        G.wrap.classList.add('has-panel');
     }
 
     const audio = { ctx: null, master: null, filter: null, muted: false, timer: 0, nextNote: 0, step: 0, engine: null, engineGain: null };
@@ -273,8 +276,8 @@
         for (let n = 0; n < length; n++) {
             const seg = segments[n];
             if (seg.tunnel) continue;
-            if (n % 3 === 0 && r() < 0.85) seg.buildings.push({ side: -1, w: 0.4 + r() * 0.9, h: 0.6 + r() * 2.4, gap: 1.05 + r() * 0.6, shade: Math.floor(r() * 3) });
-            if (n % 3 === 1 && r() < 0.85) seg.buildings.push({ side: 1, w: 0.4 + r() * 0.9, h: 0.6 + r() * 2.4, gap: 1.05 + r() * 0.6, shade: Math.floor(r() * 3) });
+            if (n % 3 === 0 && r() < 0.85) seg.buildings.push({ side: -1, w: 0.4 + r() * 0.9, h: 0.6 + r() * 2.4, gap: 1.05 + r() * 0.6, shade: Math.floor(r() * 3), sign: r() < 0.14, flicker: r() });
+            if (n % 3 === 1 && r() < 0.85) seg.buildings.push({ side: 1, w: 0.4 + r() * 0.9, h: 0.6 + r() * 2.4, gap: 1.05 + r() * 0.6, shade: Math.floor(r() * 3), sign: r() < 0.14, flicker: r() });
         }
         return segments;
     }
@@ -297,6 +300,7 @@
             c.height = height;
             const cx = c.getContext('2d');
             const pattern = windowPattern(cx, layer.window, 9, 2);
+            let signs = 0;
             for (const b of layer.buildings) {
                 const top = height - b.h * layer.scale;
                 cx.fillStyle = layer.color;
@@ -305,6 +309,23 @@
                 if (b.windows && layer.scale > 0.6) {
                     cx.fillStyle = pattern;
                     cx.fillRect(b.x + 3, top + 4, Math.max(0, b.w - 6), Math.max(0, b.h * layer.scale - 8));
+                }
+                if (layer.scale > 0.6 && b.w > 90 && signs < 4 && (b.x * 7) % 5 < 1.6) {
+                    signs += 1;
+                    const size = Math.max(7, Math.min(11, b.w / 12));
+                    cx.save();
+                    cx.fillStyle = '#2a2a2a';
+                    cx.fillRect(b.x + 6, top - size - 8, b.w - 12, size + 6);
+                    cx.fillRect(b.x + 10, top - 3, 2, 3);
+                    cx.fillRect(b.x + b.w - 12, top - 3, 2, 3);
+                    cx.font = `700 ${size}px ${(getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || 'monospace').trim()}`;
+                    cx.textAlign = 'center';
+                    cx.textBaseline = 'middle';
+                    cx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+                    cx.shadowBlur = size * 0.6;
+                    cx.fillStyle = '#f4f4f4';
+                    cx.fillText('LOCALHOST DEVELOPMENT', b.x + b.w / 2, top - size / 2 - 5);
+                    cx.restore();
                 }
             }
             return Object.assign(layer, { canvas: c, height });
@@ -425,6 +446,37 @@
             ctx.globalAlpha = Math.min(1, seg.fog);
             ctx.fillStyle = G.windowPattern;
             ctx.fillRect(left + 3, top + 4, Math.max(0, w - 6), Math.max(0, bottom - top - 8));
+            ctx.restore();
+        }
+        if (b.sign && w > 60 && seg.fog > 0.3 && top < clip) {
+            const signH = w * 0.2;
+            const poleH = w * 0.1;
+            const boardW = w * 0.86;
+            const boardX = left + (w - boardW) / 2;
+            const boardY = top - poleH - signH;
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, seg.fog);
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(boardX + boardW * 0.12, top - poleH, 2, poleH);
+            ctx.fillRect(boardX + boardW * 0.88, top - poleH, 2, poleH);
+            ctx.fillRect(boardX, boardY, boardW, signH);
+            const on = (Math.floor(G.time * 14 + b.flicker * 100) % 37) !== 0;
+            const size = Math.max(8, signH * 0.6);
+            ctx.font = `700 ${size}px ${G.mono}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = on ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.2)';
+            ctx.shadowBlur = on ? size * 0.7 : size * 0.15;
+            ctx.fillStyle = on ? '#ffffff' : '#8f8f8f';
+            const label = 'localhost';
+            const dot = '.';
+            const totalW = ctx.measureText(label + dot).width;
+            const startX = boardX + boardW / 2 - totalW / 2;
+            ctx.textAlign = 'left';
+            ctx.fillText(label, startX, boardY + signH / 2);
+            ctx.shadowColor = on ? 'rgba(255, 196, 96, 0.95)' : 'rgba(255, 196, 96, 0.2)';
+            ctx.fillStyle = on ? '#f2b45c' : '#8a6a3a';
+            ctx.fillText(dot, startX + ctx.measureText(label).width, boardY + signH / 2);
             ctx.restore();
         }
     }
@@ -797,6 +849,7 @@
     }
 
     function update(dt) {
+        G.time += dt;
         if (G.phase === 'countdown') {
             G.countdown -= dt;
             if (G.countdown <= -0.6) G.phase = 'play';
@@ -1300,6 +1353,7 @@
         G.brake = false;
         G.keys = {};
         G.pointer = { active: false, id: null, startX: 0, steer: 0 };
+        G.time = 0;
         G.overAt = 0;
         G.ended = false;
         clearPanel();
