@@ -18,7 +18,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function inBattle() {
-    return document.documentElement.classList.contains('battle');
+    const root = document.documentElement.classList;
+    return root.contains('battle') || root.contains('race');
+}
+
+function loadGame(file, marker, run) {
+    const existing = document.querySelector(`script[data-${marker}]`);
+    if (existing) return true;
+    const version = ((document.querySelector('meta[name="asset-version"]') || {}).content || '').trim();
+    const script = document.createElement('script');
+    script.src = file + (version ? '?v=' + version : '');
+    script.setAttribute('data-' + marker, '');
+    script.addEventListener('load', run);
+    document.body.appendChild(script);
+    return true;
+}
+
+function launchEleanor() {
+    const run = () => {
+        if (!window.Eleanor) return false;
+        const ok = window.Eleanor.start();
+        if (!ok) console.log('Eleanor needs a bigger screen.');
+        return ok;
+    };
+    if (window.Eleanor) return run();
+    return loadGame('js/race.js', 'race', run);
 }
 
 function launchBattleCity() {
@@ -154,7 +178,11 @@ function flipTheSheet() {
 }
 
 function initBattleCode() {
-    const code = 'battlecity';
+    const codes = [
+        { code: 'battlecity', launch: launchBattleCity },
+        { code: 'gonein60seconds', launch: launchEleanor },
+    ];
+    const longest = Math.max(...codes.map(c => c.code.length));
     let buffer = '';
     if (location.hash === '#battlecity') setTimeout(launchBattleCity, 600);
     document.addEventListener('keydown', event => {
@@ -164,10 +192,13 @@ function initBattleCode() {
         if (event.key.length !== 1) return;
         const ch = event.key.toLowerCase();
         if (ch === ' ') return;
-        buffer = (buffer + ch).slice(-code.length);
-        if (buffer === code) {
-            buffer = '';
-            launchBattleCity();
+        buffer = (buffer + ch).slice(-longest);
+        for (const entry of codes) {
+            if (buffer.endsWith(entry.code)) {
+                buffer = '';
+                entry.launch();
+                return;
+            }
         }
     });
 }
@@ -268,6 +299,7 @@ function initConsoleBanner() {
     console.log('The seal in the hero is an SVG filter (feTurbulence + feDisplacementMap). Press and hold it.');
     console.log('Press ` (backtick) for a terminal, or click the seal in the footer.');
     console.log('Type battlecity. Anywhere on the page. You have been warned.');
+    console.log('Or gonein60seconds, if you would rather drive.');
     console.log('Say hello: jovan.vulin@localhostdevelopmentdoo.com');
 }
 
@@ -337,6 +369,7 @@ function initTerminal() {
             '  stamp             press the seal',
             '  theme <name>      paper, hearth or cyber (or just press t)',
             '  battlecity        the page becomes the map. 20 enemy tanks. good luck.',
+            '  gonein60seconds   Eleanor. Sixty seconds of grey city. Hold to drive.',
             '  scores            the Battle City scoreboard',
             '  ls, cat, pwd      the usual',
             '  clear, exit       tidy up, close',
@@ -461,6 +494,12 @@ function initTerminal() {
             close();
             setTimeout(launchBattleCity, 380);
         },
+        gonein60seconds: () => {
+            print('Eleanor is warming up. Hold to drive, steer left and right, sixty seconds.');
+            close();
+            setTimeout(launchEleanor, 380);
+        },
+        eleanor: () => commands.gonein60seconds(),
         echo: args => print(args.join(' ')),
         sudo: () => print('Nice try. Jovan has the root password; his email is under contact.'),
         clear: () => { output.replaceChildren(); },

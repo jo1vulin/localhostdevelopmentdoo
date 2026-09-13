@@ -30,7 +30,7 @@ Press `t` on the page to cycle Paper (default), Hearth and Cyber, or open `?them
 
 ## Easter eggs
 
-Backtick opens a terminal (type `help`). Typing `battlecity` turns the page into a Battle City map for one round against 20 tanks; Esc brings the site back.
+Backtick opens a terminal (type `help`). Typing `battlecity` turns the page into a Battle City map for one round against 20 tanks; `gonein60seconds` starts a sixty-second drive through a grey city. Esc brings the site back.
 
 The scoreboard is shared worldwide through a small Cloudflare Worker; see `scoreboard/README.md` for how it is deployed and how to wipe it.
 

@@ -2063,3 +2063,52 @@ html.flipping body {
     background: transparent;
     border: 1px solid rgba(var(--on-dark-rgb), 0.35);
 }
+
+.eleanor {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: #b9b9b9;
+    opacity: 0;
+    transition: opacity 0.4s var(--ease);
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.eleanor.is-on {
+    opacity: 1;
+}
+
+.eleanor canvas {
+    display: block;
+}
+
+.eleanor-bar {
+    position: absolute;
+    top: 44px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.eleanor-button {
+    min-width: 40px;
+    height: 36px;
+    padding: 0 10px;
+    font: 700 13px var(--font-mono);
+    color: #f2f2f2;
+    background: rgba(17, 17, 17, 0.45);
+    border: 1px solid rgba(242, 242, 242, 0.35);
+    border-radius: 6px;
+}
+
+.eleanor-button.is-off {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.eleanor-button.is-armed {
+    background: #f2f2f2;
+    color: #111111;
+}
