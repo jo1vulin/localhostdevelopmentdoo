@@ -1933,3 +1933,114 @@ html.flipping body {
     opacity: 1;
     transform: none;
 }
+
+.battle-city.is-touch {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.battle-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--strip, 136px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 clamp(12px, 4vw, 32px) env(safe-area-inset-bottom, 0px);
+    color: var(--on-dark);
+    font-family: var(--font-mono);
+}
+
+.battle-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 46px);
+    grid-template-rows: repeat(3, 46px);
+    gap: 3px;
+    touch-action: none;
+}
+
+.battle-pad button {
+    font: 700 16px var(--font-mono);
+    color: var(--on-dark);
+    background: rgba(var(--on-dark-rgb), 0.12);
+    border: 1px solid rgba(var(--on-dark-rgb), 0.28);
+    border-radius: 8px;
+    padding: 0;
+    touch-action: none;
+}
+
+.battle-pad button.is-active {
+    background: rgba(var(--on-dark-rgb), 0.35);
+}
+
+.battle-pad-up {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.battle-pad-left {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.battle-pad-right {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.battle-pad-down {
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.battle-sys {
+    display: flex;
+    gap: 8px;
+}
+
+.battle-sys-button {
+    width: 40px;
+    height: 40px;
+    font: 700 14px var(--font-mono);
+    color: var(--on-dark);
+    background: rgba(var(--on-dark-rgb), 0.12);
+    border: 1px solid rgba(var(--on-dark-rgb), 0.28);
+    border-radius: 8px;
+    padding: 0;
+}
+
+.battle-fire {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    border: 0;
+    font: 700 13px var(--font-mono);
+    letter-spacing: 0.12em;
+    color: var(--footer-bg);
+    background: var(--copper);
+    box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.7);
+    touch-action: none;
+}
+
+.battle-fire:active {
+    transform: scale(0.94);
+}
+
+.battle-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-block: 0.25rem 0.75rem;
+}
+
+.battle-button-ghost {
+    color: var(--on-dark);
+    background: transparent;
+    border: 1px solid rgba(var(--on-dark-rgb), 0.35);
+}

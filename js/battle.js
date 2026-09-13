@@ -118,9 +118,12 @@
         }
         const button = el('button', 'battle-button', 'SAVE');
         button.type = 'submit';
-        form.append(label, input, button);
+        const skip = el('button', 'battle-button battle-button-ghost', 'SKIP');
+        skip.type = 'button';
+        skip.addEventListener('click', () => skipName());
+        form.append(label, input, button, skip);
         panel.appendChild(form);
-        panel.appendChild(el('p', 'battle-hint', 'ENTER to save   ESC to skip'));
+        panel.appendChild(el('p', 'battle-hint', G.touch ? 'save your score or skip' : 'ENTER to save   ESC to skip'));
         panel.hidden = false;
         form.addEventListener('submit', event => {
             event.preventDefault();
@@ -136,6 +139,14 @@
             });
         });
         setTimeout(() => input.focus(), 50);
+    }
+
+    function skipName() {
+        if (!G || G.panelMode !== 'name') return;
+        G.panelMode = 'busy';
+        fetchScores().then(result => {
+            if (G) showBoard(result, null);
+        });
     }
 
     function showBoard(result, mine) {
@@ -161,7 +172,16 @@
         });
         panel.appendChild(list);
         if (mine && result.rank && result.rank > 10) panel.appendChild(el('p', 'battle-sub', `you are #${result.rank}`));
-        panel.appendChild(el('p', 'battle-hint', 'R play again   ESC back to the site'));
+        const actions = el('div', 'battle-actions');
+        const again = el('button', 'battle-button', 'PLAY AGAIN');
+        again.type = 'button';
+        again.addEventListener('click', () => restart());
+        const leave = el('button', 'battle-button battle-button-ghost', 'BACK TO THE SITE');
+        leave.type = 'button';
+        leave.addEventListener('click', () => stop());
+        actions.append(again, leave);
+        panel.appendChild(actions);
+        if (!G.touch) panel.appendChild(el('p', 'battle-hint', 'R play again   ESC back to the site'));
         panel.hidden = false;
     }
 
@@ -635,7 +655,7 @@
                 turn(player, dir);
                 advance(player, dt);
             }
-            if (G.firePressed) {
+            if (G.firePressed || (G.fireHeld && !player.bullet)) {
                 G.firePressed = false;
                 shoot(player);
             }
@@ -823,7 +843,7 @@
             const row = Math.floor(i / 10);
             ctx.fillRect(G.W - 48 - (col + 1) * 11 + 3, 30 + row * 10, 8, 7);
         }
-        label('ARROWS / WASD MOVE   SPACE FIRE   P PAUSE   M SOUND   ESC QUIT', 12, G.H - 20, 'left');
+        if (!G.touch) label('ARROWS / WASD MOVE   SPACE FIRE   P PAUSE   M SOUND   ESC QUIT', 12, G.H - 20, 'left');
     }
 
     function drawBanner(ctx, pal, title, sub) {
@@ -888,10 +908,7 @@
         if (G.panelMode === 'name' || G.panelMode === 'busy') {
             if (key === 'Escape') {
                 event.preventDefault();
-                G.panelMode = 'busy';
-                fetchScores().then(result => {
-                    if (G) showBoard(result, null);
-                });
+                skipName();
             }
             return;
         }
@@ -940,7 +957,77 @@
     }
 
     function onBlur() {
-        if (G) G.held = [];
+        if (G) {
+            G.held = [];
+            G.fireHeld = false;
+        }
+    }
+
+    function onVisibility() {
+        if (G && document.hidden && G.phase === 'play' && !G.over) G.paused = true;
+    }
+
+    function buildTouchControls(wrap) {
+        const controls = el('div', 'battle-controls');
+        const pad = el('div', 'battle-pad');
+        for (const dir of ['up', 'left', 'right', 'down']) {
+            const button = el('button', 'battle-pad-' + dir, { up: '\u25B2', left: '\u25C0', right: '\u25B6', down: '\u25BC' }[dir]);
+            button.type = 'button';
+            button.setAttribute('data-dir', dir);
+            button.setAttribute('aria-label', dir);
+            pad.appendChild(button);
+        }
+        const setDir = target => {
+            const button = target && target.closest ? target.closest('[data-dir]') : null;
+            const dir = button ? button.getAttribute('data-dir') : null;
+            if (!G) return;
+            G.held = dir ? [dir] : [];
+            pad.querySelectorAll('[data-dir]').forEach(b => b.classList.toggle('is-active', b === button));
+        };
+        pad.addEventListener('pointerdown', event => {
+            event.preventDefault();
+            pad.setPointerCapture(event.pointerId);
+            setDir(document.elementFromPoint(event.clientX, event.clientY));
+        });
+        pad.addEventListener('pointermove', event => {
+            if (!pad.hasPointerCapture(event.pointerId)) return;
+            setDir(document.elementFromPoint(event.clientX, event.clientY));
+        });
+        const release = event => {
+            if (pad.hasPointerCapture(event.pointerId)) pad.releasePointerCapture(event.pointerId);
+            setDir(null);
+        };
+        pad.addEventListener('pointerup', release);
+        pad.addEventListener('pointercancel', release);
+
+        const sys = el('div', 'battle-sys');
+        const pause = el('button', 'battle-sys-button', 'II');
+        pause.type = 'button';
+        pause.setAttribute('aria-label', 'Pause');
+        pause.addEventListener('click', () => { if (G) G.paused = !G.paused; });
+        const quit = el('button', 'battle-sys-button', '\u2715');
+        quit.type = 'button';
+        quit.setAttribute('aria-label', 'Quit');
+        quit.addEventListener('click', () => stop());
+        sys.append(pause, quit);
+
+        const fire = el('button', 'battle-fire', 'FIRE');
+        fire.type = 'button';
+        const fireOn = event => {
+            event.preventDefault();
+            if (!G) return;
+            G.fireHeld = true;
+            G.firePressed = true;
+        };
+        const fireOff = () => { if (G) G.fireHeld = false; };
+        fire.addEventListener('pointerdown', fireOn);
+        fire.addEventListener('pointerup', fireOff);
+        fire.addEventListener('pointercancel', fireOff);
+        fire.addEventListener('pointerleave', fireOff);
+
+        controls.append(pad, sys, fire);
+        controls.addEventListener('contextmenu', event => event.preventDefault());
+        wrap.appendChild(controls);
     }
 
     function setupState(map) {
@@ -954,6 +1041,7 @@
         G.effects = [];
         G.held = [];
         G.firePressed = false;
+        G.fireHeld = false;
         G.lives = 3;
         G.score = 0;
         G.killed = 0;
@@ -982,15 +1070,18 @@
 
     function start() {
         if (G) return true;
+        const touch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+        const strip = touch ? (window.innerHeight > 520 ? 136 : 100) : 0;
         const W = Math.floor(window.innerWidth / TILE) * TILE;
-        const H = Math.floor(window.innerHeight / TILE) * TILE;
+        const H = Math.floor((window.innerHeight - strip) / TILE) * TILE;
         const cols = W / TILE;
         const rows = H / TILE;
-        if (cols < 24 || rows < 20) return false;
+        if (cols < 18 || rows < 16) return false;
 
         const map = scanMap(cols, rows, W, H);
         const wrap = document.createElement('div');
-        wrap.className = 'battle-city';
+        wrap.className = 'battle-city' + (touch ? ' is-touch' : '');
+        wrap.style.setProperty('--strip', strip + 'px');
         const panel = el('div', 'battle-panel');
         panel.hidden = true;
         const canvas = document.createElement('canvas');
@@ -1006,7 +1097,8 @@
         ctx.scale(dpr, dpr);
         ctx.imageSmoothingEnabled = false;
 
-        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map, pal: palette(), maxOnScreen: cols * rows > 3000 ? 6 : 4, last: performance.now(), raf: 0, best: null };
+        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map, touch, pal: palette(), maxOnScreen: cols * rows > 3000 ? 6 : 4, last: performance.now(), raf: 0, best: null, fireHeld: false };
+        if (touch) buildTouchControls(wrap);
         setupState(map);
         fetchScores().then(result => {
             if (G && result.scores.length) G.best = result.scores[0];
@@ -1019,6 +1111,7 @@
         window.addEventListener('keydown', onKeyDown, true);
         window.addEventListener('keyup', onKeyUp, true);
         window.addEventListener('blur', onBlur);
+        document.addEventListener('visibilitychange', onVisibility);
         ensureAudio();
         G.raf = requestAnimationFrame(frame);
         return true;
@@ -1030,6 +1123,7 @@
         window.removeEventListener('keydown', onKeyDown, true);
         window.removeEventListener('keyup', onKeyUp, true);
         window.removeEventListener('blur', onBlur);
+        document.removeEventListener('visibilitychange', onVisibility);
         G.wrap.remove();
         document.body.style.overflow = G.prevOverflow;
         document.documentElement.classList.remove('battle');
