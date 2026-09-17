@@ -5,3 +5,6 @@ compatibility_date = "2026-09-01"
 [[kv_namespaces]]
 binding = "SCORES"
 id = "8c12ec26d58748f89d182d8ad7fea34a"
+
+[observability]
+enabled = true

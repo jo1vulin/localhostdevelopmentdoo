@@ -15,10 +15,14 @@ A score is accepted only when all of these hold:
 - `token` is a session the worker issued, for the same game, not used before, and less than an hour old
 - enough real time passed since the session opened: 58 s for Eleanor, and for Battle City 4 s plus 40 s per stage cleared (a stage cannot be cleared faster: twenty tanks spawn 2.4 s apart)
 - `sig` is `HMAC-SHA256(SIGNING_KEY, "<game>|<token>|<score>|<speed or killed>")` in hex; the key is the `SIGNING_KEY` secret on the worker and is embedded, lightly obfuscated, in `js/battle.js` and `js/race.js` (`SEAL`)
+- the result fits the time: Battle City score at most 9500 per stage the elapsed time allows and tanks at most 20 per such stage; tanks between 20 per cleared stage and 20 per stage reached; Eleanor at most 73 m per elapsed second
 - the usual plausibility limits: name at most 12 characters; Battle City score a multiple of 100 up to 120000 and at most 400 per tank plus 6000 for bonuses, at most 220 tanks, stage 1 to 11; Eleanor at most 4500 m, 262 km/h, 40 jumps, 200 near misses, 100 crashes
+- the request carries an `Origin` of the production site (POST only; with `DEV=1` in `.dev.vars`, `wrangler dev` also accepts localhost:8123)
 - at most 40 requests per IP per 10 minutes
 
-Honest limits: the site is static, so anyone who reads the JavaScript can find the key and play a scripted round. This blocks "send a POST from a shell", not a determined cheater. Moderation is what handles the rest.
+Rounds started through the test switches of the game API (`BattleCity.start({ invincible, enemiesPerStage })`) are practice rounds: no session, no name form, nothing sent.
+
+Honest limits: the site is static, so anyone who reads the JavaScript can find the key and script a round that respects the timing. This blocks "send a POST from a shell" and "play invincible from the console", not a determined cheater; every attempt is in the log and moderation handles the rest. The only provably clean design is replay verification (the server re-runs the recorded inputs and computes the score itself), which needs deterministic game cores and more CPU than the free plan allows; not built.
 
 ## Moderation
 
@@ -26,11 +30,14 @@ Honest limits: the site is static, so anyone who reads the JavaScript can find t
 
 ```bash
 ./moderate.sh eleanor list
+./moderate.sh battle log
 ./moderate.sh eleanor remove 2026-09-16T13:13:04.958Z
 ./moderate.sh battle remove-name Mladen
 ```
 
 `list` prints the full stored board (up to 100 rows) with each row's timestamp; `remove` deletes the row with that exact timestamp, `remove-name` every row with that name.
+
+`log` prints the audit trail: every session start and every submission, accepted or rejected, with time, IP, user agent, the first characters of the token, the claimed score, the seconds elapsed since the session opened, and the outcome (`ok` with rank, or the rejection reason). Entries live seven days in KV. The same lines go to Workers Logs (`observability` in `wrangler.toml`), so `npx wrangler tail` shows them live and the Cloudflare dashboard keeps them for its retention period.
 
 ## Current setup
 

@@ -187,6 +187,7 @@
         panel.replaceChildren();
         G.panelMode = 'board';
         panel.appendChild(el('h2', 'battle-title', G.won ? 'STAGE CLEAR' : 'GAME OVER'));
+        if (G.practice) panel.appendChild(el('p', 'battle-sub', `practice round, not ranked: score ${G.score}   stage ${G.stage}   ${G.killedTotal} tank${G.killedTotal === 1 ? '' : 's'}`));
         const scope = result.local ? (result.offline ? 'scoreboard offline, saved in this browser' : 'scoreboard for this browser') : 'top 10 worldwide';
         panel.appendChild(el('p', 'battle-sub', scope));
         const list = el('ol', 'battle-scores');
@@ -220,7 +221,7 @@
     }
 
     function onRoundEnd() {
-        if (G.score > 0) showNameForm();
+        if (G.score > 0 && !G.practice) showNameForm();
         else fetchScores().then(result => {
             if (G) showBoard(result, null);
         });
@@ -1366,7 +1367,7 @@
 
     function newGame() {
         G.token = null;
-        openSession('battle').then(token => {
+        if (!G.practice) openSession('battle').then(token => {
             if (G) G.token = token;
         });
         G.stage = 1;
@@ -1417,7 +1418,7 @@
         ctx.scale(dpr * zoom, dpr * zoom);
         ctx.imageSmoothingEnabled = false;
 
-        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map: null, touch, pal: palette(), maxOnScreen: 4, last: performance.now(), raf: 0, best: null, fireHeld: false, scrollY0: window.scrollY, stage: 1, stars: 0, total: perStage, invincible: !!(options && options.invincible), zoom };
+        G = { W, H, cols, rows, canvas, ctx, wrap, panel, panelMode: null, map: null, touch, pal: palette(), maxOnScreen: 4, last: performance.now(), raf: 0, best: null, fireHeld: false, scrollY0: window.scrollY, stage: 1, stars: 0, total: perStage, invincible: !!(options && options.invincible), practice: !!(options && (options.invincible || Number.isInteger(options.enemiesPerStage))), zoom };
         if (touch) buildTouchControls(wrap);
         newGame();
         fetchScores().then(result => {
@@ -1455,6 +1456,7 @@
         if (!G) return null;
         return {
             phase: G.phase,
+            practice: G.practice,
             over: G.over,
             won: G.won,
             stage: G.stage,
