@@ -34,6 +34,30 @@
     const SCORE_API = ((document.querySelector('meta[name="score-api"]') || {}).content || '').trim();
     const MAX_NAME = 12;
 
+    const SEAL = [44,17,41,18,11,32,109,34,61,11,9,41,15,10,22,2,110,35,61,61,21,105,53,32];
+
+    function apiPath(name) {
+        return SCORE_API.replace(/[?#].*$/, '').replace(/\/?$/, '/') + name;
+    }
+
+    async function openSession(game) {
+        if (!SCORE_API) return null;
+        try {
+            const res = await fetch(apiPath('start'), { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ game }) });
+            const data = await res.json();
+            return typeof data.token === 'string' ? data.token : null;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function sealEntry(message) {
+        const bytes = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', bytes.encode(String.fromCharCode(...SEAL.map(c => c ^ 0x5a))), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+        const sig = await crypto.subtle.sign('HMAC', key, bytes.encode(message));
+        return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     function sortScores(list) {
         return list.sort((a, b) => b.score - a.score || (b.speed || 0) - (a.speed || 0) || String(a.at).localeCompare(String(b.at)));
     }
@@ -78,7 +102,11 @@
         const localResult = { scores: local.slice(0, 10), rank: local.indexOf(entry) + 1, local: true };
         if (!SCORE_API) return localResult;
         try {
-            const res = await fetch(SCORE_API, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ game: 'eleanor' }, entry)) });
+            const token = G && G.token;
+            if (!token) throw new Error('no session');
+            const payload = Object.assign({ game: 'eleanor', token }, entry);
+            payload.sig = await sealEntry(`eleanor|${token}|${entry.score}|${entry.speed}`);
+            const res = await fetch(SCORE_API, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
             if (!res.ok) throw new Error(String(res.status));
             const data = await res.json();
             return { scores: (data.scores || []).slice(0, 10), rank: data.rank || null, local: false };
@@ -1314,6 +1342,10 @@
     }
 
     function newRound() {
+        G.token = null;
+        openSession('eleanor').then(token => {
+            if (G) G.token = token;
+        });
         G.seed = Math.floor(Math.random() * 1e9);
         G.segments = buildTrack(G.seed);
         G.trackLength = G.segments.length * SEG;

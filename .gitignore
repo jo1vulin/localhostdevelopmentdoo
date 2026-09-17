@@ -2,3 +2,6 @@
 *.pdf
 scoreboard/.wrangler/
 scoreboard/node_modules/
+scoreboard/.signing-key
+scoreboard/.admin-key
+scoreboard/.dev.vars
